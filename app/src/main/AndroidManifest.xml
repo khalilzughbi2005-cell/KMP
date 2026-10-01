@@ -3,7 +3,7 @@
     <application
         android:allowBackup="true"
         android:fullBackupContent="true"
-        android:label="Mounjaro Log"
+        android:icon="@drawable/ic_launcher"\n        android:roundIcon="@drawable/ic_launcher"\n        android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.MounjaroLog">
         <activity
