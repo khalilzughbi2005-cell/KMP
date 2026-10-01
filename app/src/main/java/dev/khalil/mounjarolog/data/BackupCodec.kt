@@ -127,7 +127,7 @@ object BackupCodec {
 
     private fun csv(value: String): String =
         if (value.any { it == ',' || it == '"' || it == '\n' }) {
-            "\"\${value.replace("\"", "\"\"")}\""
+            "\\"" + value.replace("\\"", "\\"\\\"") + "\\""
         } else value
 
     private fun <T> JSONArray?.toList(block: (JSONObject) -> T): List<T> {
