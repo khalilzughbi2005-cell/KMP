@@ -125,10 +125,12 @@ object BackupCodec {
         return lines.joinToString("\n")
     }
 
-    private fun csv(value: String): String =
-        if (value.any { it == ',' || it == '"' || it == '\n' }) {
-            "\\"" + value.replace("\\"", "\\"\\\"") + "\\""
-        } else value
+    private fun csv(value: String): String {
+        if (!value.any { it == ',' || it.code == 34 || it == '\n' }) return value
+        val quote = 34.toChar().toString()
+        val escaped = value.replace(quote, quote + quote)
+        return quote + escaped + quote
+    }
 
     private fun <T> JSONArray?.toList(block: (JSONObject) -> T): List<T> {
         if (this == null) return emptyList()
