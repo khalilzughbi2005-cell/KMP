@@ -2,7 +2,7 @@ name: Android build
 
 on:
   push:
-    branches: ["main", "feature/mounjaro-logger"]
+    branches: ["main"]
   pull_request:
 
 concurrency:
@@ -21,17 +21,71 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Restore stable debug signing key
+
+      - name: Restore persistent signing key
+        id: signing-cache
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: mounjaro-log-debug-keystore-v1
+          path: ~/.android
+          key: mounjaro-log-signing-keystore-v2
+
+      - name: Prepare and verify signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            echo "No persisted signing key found; creating the canonical v2 key."
+            keytool -genkeypair \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Mounjaro Log, O=Personal App"
+          fi
+
+          FINGERPRINT="$(
+            keytool -list -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey |
+            sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' |
+            head -n 1 |
+            tr -d ':' |
+            tr '[:upper:]' '[:lower:]'
+          )"
+
+          test -n "$FINGERPRINT"
+          echo "$FINGERPRINT" > signing-fingerprint.txt
+          echo "Signing certificate SHA-256: $FINGERPRINT"
+
+          if [ -f ".github/signing-certificate.sha256" ]; then
+            EXPECTED="$(tr -d '[:space:]:' < .github/signing-certificate.sha256 | tr '[:upper:]' '[:lower:]')"
+            if [ "$FINGERPRINT" != "$EXPECTED" ]; then
+              echo "::error::Signing certificate changed. Refusing to build an incompatible APK."
+              exit 42
+            fi
+          fi
+
       - name: Test and assemble debug APK
         run: gradle :app:testDebugUnitTest :app:assembleDebug --stacktrace
-      - name: Upload debug APK
+
+      - name: Upload installable APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: mounjaro-log-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload signing fingerprint
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mounjaro-log-signing-fingerprint
+          path: signing-fingerprint.txt
           if-no-files-found: error
