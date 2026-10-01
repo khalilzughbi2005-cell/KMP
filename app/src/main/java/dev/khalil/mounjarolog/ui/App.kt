@@ -1,7 +1,7 @@
 package dev.khalil.mounjarolog.ui
 
-import android.app.DatePickerDialog
-import androidx.compose.foundation.Canvas
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,23 +21,24 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Vaccines
-import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -45,80 +47,92 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.khalil.mounjarolog.BuildConfig
 import dev.khalil.mounjarolog.MainViewModel
+import dev.khalil.mounjarolog.data.BackupCodec
 import dev.khalil.mounjarolog.model.AppData
+import dev.khalil.mounjarolog.model.DayLog
 import dev.khalil.mounjarolog.model.Injection
+import dev.khalil.mounjarolog.model.Milestone
 import dev.khalil.mounjarolog.model.SupportedDoses
 import dev.khalil.mounjarolog.model.WeightMeasurement
 import dev.khalil.mounjarolog.model.doseContextFor
 import dev.khalil.mounjarolog.model.latestInjection
 import dev.khalil.mounjarolog.model.latestWeight
 import dev.khalil.mounjarolog.model.startingWeight
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.Locale
-import kotlin.math.max
-import kotlin.math.min
 
-private enum class Screen(val label: String) {
-    HOME("Home"), PROGRESS("Progress"), CALENDAR("Calendar"), HISTORY("History"), STATS("Stats")
+private enum class AppTab(val label: String) {
+    HOME("Home"),
+    PROGRESS("Progress"),
+    CALENDAR("Calendar"),
+    HISTORY("History"),
+    MORE("More")
 }
 
-private enum class RangePreset(val label: String) {
-    MONTH("1M"), TWO_MONTHS("2M"), THREE_MONTHS("3M"), SIX_MONTHS("6M"),
-    YEAR("1Y"), ALL("All"), CUSTOM("From…")
+private enum class HistoryFilter(val label: String) {
+    ALL("All"),
+    WEIGHT("Weight"),
+    INJECTION("Dose"),
+    NOTES("Notes")
 }
-
-private enum class GraphMode(val label: String) {
-    WEIGHT("Weight"), CHANGE("Change"), WEEKLY("Weekly"), DOSE("Dose")
-}
-
-private val displayDate = DateTimeFormatter.ofPattern("d MMM uuuu", Locale.getDefault())
 
 @Composable
 fun MounjaroLogApp(viewModel: MainViewModel) {
     val data by viewModel.data.collectAsStateWithLifecycle()
-    var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
+    val busy by viewModel.busy.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var tab by rememberSaveable { mutableStateOf(AppTab.HOME) }
+    var addEntryDate by remember { mutableStateOf<LocalDate?>(null) }
+
+    fun notify(result: Result<Unit>, success: String) {
+        scope.launch {
+            snackbar.showSnackbar(
+                result.fold(
+                    onSuccess = { success },
+                    onFailure = { it.message ?: "Something went wrong." }
+                )
+            )
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             NavigationBar(modifier = Modifier.navigationBarsPadding()) {
-                Screen.entries.forEach { item ->
+                AppTab.entries.forEach { item ->
                     NavigationBarItem(
-                        selected = screen == item,
-                        onClick = { screen = item },
+                        selected = tab == item,
+                        onClick = { tab = item },
                         icon = {
                             Icon(
-                                when (item) {
-                                    Screen.HOME -> Icons.Default.Home
-                                    Screen.PROGRESS -> Icons.Default.BarChart
-                                    Screen.CALENDAR -> Icons.Default.CalendarMonth
-                                    Screen.HISTORY -> Icons.Default.List
-                                    Screen.STATS -> Icons.Default.Insights
+                                imageVector = when (item) {
+                                    AppTab.HOME -> Icons.Default.Home
+                                    AppTab.PROGRESS -> Icons.Default.ShowChart
+                                    AppTab.CALENDAR -> Icons.Default.CalendarMonth
+                                    AppTab.HISTORY -> Icons.Default.ListAlt
+                                    AppTab.MORE -> Icons.Default.MoreHoriz
                                 },
                                 contentDescription = item.label
                             )
@@ -129,73 +143,183 @@ fun MounjaroLogApp(viewModel: MainViewModel) {
             }
         }
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            when (screen) {
-                Screen.HOME -> HomeScreen(data, viewModel, snackbar)
-                Screen.PROGRESS -> ProgressScreen(data)
-                Screen.CALENDAR -> CalendarScreen(data)
-                Screen.HISTORY -> HistoryScreen(data, viewModel)
-                Screen.STATS -> StatsScreen(data)
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            when (tab) {
+                AppTab.HOME -> HomeScreen(
+                    data = data,
+                    busy = busy,
+                    onSaveEntry = { date, weight, dose, site, appetite, sideEffects, note, done ->
+                        viewModel.addEntry(
+                            date = date,
+                            weightKg = weight,
+                            doseMg = dose,
+                            injectionSite = site,
+                            appetite = appetite,
+                            sideEffects = sideEffects,
+                            note = note
+                        ) { result ->
+                            notify(result, "Entry saved.")
+                            done(result.isSuccess)
+                        }
+                    }
+                )
+                AppTab.PROGRESS -> ProgressScreen(data)
+                AppTab.CALENDAR -> CalendarScreen(
+                    data = data,
+                    viewModel = viewModel,
+                    onAddEntry = { addEntryDate = it },
+                    notify = ::notify
+                )
+                AppTab.HISTORY -> HistoryScreen(
+                    data = data,
+                    viewModel = viewModel,
+                    notify = ::notify
+                )
+                AppTab.MORE -> MoreScreen(
+                    data = data,
+                    viewModel = viewModel,
+                    notify = ::notify
+                )
+            }
+
+            if (busy) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 6.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            RoundedCornerShape(20.dp)
+                        )
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Text("Saving…", style = MaterialTheme.typography.labelMedium)
+                }
             }
         }
+    }
+
+    addEntryDate?.let { initialDate ->
+        NewEntryDialog(
+            initialDate = initialDate,
+            onDismiss = { addEntryDate = null },
+            onSave = { date, weight, dose, site, appetite, sideEffects, note ->
+                viewModel.addEntry(
+                    date = date,
+                    weightKg = weight,
+                    doseMg = dose,
+                    injectionSite = site,
+                    appetite = appetite,
+                    sideEffects = sideEffects,
+                    note = note
+                ) { result ->
+                    notify(result, "Entry saved.")
+                    if (result.isSuccess) addEntryDate = null
+                }
+            }
+        )
     }
 }
 
 @Composable
-private fun HomeScreen(data: AppData, viewModel: MainViewModel, snackbar: SnackbarHostState) {
+private fun HomeScreen(
+    data: AppData,
+    busy: Boolean,
+    onSaveEntry: (
+        LocalDate,
+        Double?,
+        Double?,
+        String,
+        Int?,
+        String,
+        String,
+        (Boolean) -> Unit
+    ) -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
             Spacer(Modifier.height(8.dp))
-            Text("Mounjaro Log", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text("Your local weight & dose timeline", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "Mounjaro Log",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Weight, doses and your own notes — stored on this device.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-        item { QuickEntry(viewModel, snackbar) }
-        item { CurrentStatus(data) }
         item {
-            SectionCard("Progress") {
-                ProgressChart(
-                    data = data,
-                    mode = GraphMode.WEIGHT,
-                    start = defaultStart(data, RangePreset.TWO_MONTHS, null),
-                    end = LocalDate.now(),
-                    modifier = Modifier.fillMaxWidth().height(230.dp)
-                )
+            QuickEntryCard(busy = busy, onSave = onSaveEntry)
+        }
+        item {
+            CurrentStatusCard(data)
+        }
+        item {
+            SectionCard(
+                title = "Weight progress",
+                subtitle = "Tap a point to inspect it. Dotted lines mark unmeasured time."
+            ) {
+                CompactProgressChart(data)
             }
         }
-        item { RecentEvents(data) }
+        item {
+            RecentHistoryCard(data)
+        }
         item { Spacer(Modifier.height(8.dp)) }
     }
 }
 
 @Composable
-private fun QuickEntry(viewModel: MainViewModel, snackbar: SnackbarHostState) {
-    val context = LocalContext.current
-    var date by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
-    var weight by rememberSaveable { mutableStateOf("") }
+private fun QuickEntryCard(
+    busy: Boolean,
+    onSave: (
+        LocalDate,
+        Double?,
+        Double?,
+        String,
+        Int?,
+        String,
+        String,
+        (Boolean) -> Unit
+    ) -> Unit
+) {
+    var dateText by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+    var weightText by rememberSaveable { mutableStateOf("") }
     var dose by rememberSaveable { mutableStateOf<Double?>(null) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var injectionSite by rememberSaveable { mutableStateOf("") }
+    var appetite by rememberSaveable { mutableStateOf<Int?>(null) }
+    var sideEffects by rememberSaveable { mutableStateOf("") }
     var note by rememberSaveable { mutableStateOf("") }
+    var error by rememberSaveable { mutableStateOf<String?>(null) }
 
-    SectionCard("Quick entry") {
-        OutlinedButton(
-            onClick = {
-                val d = LocalDate.parse(date)
-                DatePickerDialog(
-                    context,
-                    { _, year, month, day -> date = LocalDate.of(year, month + 1, day).toString() },
-                    d.year, d.monthValue - 1, d.dayOfMonth
-                ).show()
-            }
-        ) { Text(LocalDate.parse(date).format(displayDate)) }
-
+    SectionCard(
+        title = "Quick entry",
+        subtitle = "Weight and dose are independent — either can be left blank."
+    ) {
+        DatePickerButton(
+            date = LocalDate.parse(dateText),
+            onDateChange = { dateText = it.toString() }
+        )
         Spacer(Modifier.height(10.dp))
+
         OutlinedTextField(
-            value = weight,
-            onValueChange = { weight = it.replace(',', '.') },
+            value = weightText,
+            onValueChange = {
+                weightText = it.replace(',', '.')
+                error = null
+            },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Current weight (kg) — optional") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true
         )
 
@@ -209,379 +333,486 @@ private fun QuickEntry(viewModel: MainViewModel, snackbar: SnackbarHostState) {
                     label = { Text("None") }
                 )
             }
-            items(SupportedDoses) { d ->
+            items(SupportedDoses) { item ->
                 FilterChip(
-                    selected = dose == d,
-                    onClick = { dose = d },
-                    label = { Text(formatDose(d)) }
+                    selected = dose == item,
+                    onClick = { dose = item },
+                    label = { Text(formatDose(item)) }
                 )
             }
         }
 
-        Spacer(Modifier.height(10.dp))
+        TextButton(onClick = { expanded = !expanded }) {
+            Text(if (expanded) "Hide optional details" else "Add notes & optional details")
+        }
+
+        if (expanded) {
+            OutlinedTextField(
+                value = injectionSite,
+                onValueChange = { injectionSite = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Injection site — optional") },
+                singleLine = true
+            )
+            Spacer(Modifier.height(8.dp))
+            Text("Appetite — optional self-rating")
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item {
+                    FilterChip(
+                        selected = appetite == null,
+                        onClick = { appetite = null },
+                        label = { Text("None") }
+                    )
+                }
+                items((1..5).toList()) { level ->
+                    FilterChip(
+                        selected = appetite == level,
+                        onClick = { appetite = level },
+                        label = { Text(level.toString()) }
+                    )
+                }
+            }
+            OutlinedTextField(
+                value = sideEffects,
+                onValueChange = { sideEffects = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Side effects / symptoms — optional") },
+                minLines = 2
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
         OutlinedTextField(
             value = note,
             onValueChange = { note = it },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Note — optional") },
-            maxLines = 3
+            minLines = if (expanded) 2 else 1
         )
+
+        error?.let {
+            Spacer(Modifier.height(6.dp))
+            Text(it, color = MaterialTheme.colorScheme.error)
+        }
 
         Spacer(Modifier.height(12.dp))
         Button(
             modifier = Modifier.fillMaxWidth(),
+            enabled = !busy,
             onClick = {
-                val parsedWeight = weight.toDoubleOrNull()
-                viewModel.addEntry(LocalDate.parse(date), parsedWeight, dose, note) { ok ->
-                    if (ok) {
-                        weight = ""
-                        dose = null
-                        note = ""
+                val weight = if (weightText.isBlank()) null else weightText.toDoubleOrNull()
+                when {
+                    weightText.isNotBlank() && weight == null -> error = "Enter a valid weight."
+                    weight == null && dose == null && appetite == null &&
+                        sideEffects.isBlank() && note.isBlank() ->
+                        error = "Add at least one value."
+                    else -> {
+                        error = null
+                        onSave(
+                            LocalDate.parse(dateText),
+                            weight,
+                            dose,
+                            injectionSite,
+                            appetite,
+                            sideEffects,
+                            note
+                        ) { saved ->
+                            if (saved) {
+                                dateText = LocalDate.now().toString()
+                                weightText = ""
+                                dose = null
+                                injectionSite = ""
+                                appetite = null
+                                sideEffects = ""
+                                note = ""
+                                expanded = false
+                            }
+                        }
                     }
                 }
             }
-        ) { Text("Save entry") }
-
-        LaunchedEffect(weight, dose) {
-            if (weight.isNotBlank() && weight.toDoubleOrNull() == null) {
-                snackbar.showSnackbar("Weight must be a number, e.g. 94.6")
-            }
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null)
+            Text("  Save entry")
         }
     }
 }
 
 @Composable
-private fun CurrentStatus(data: AppData) {
-    val latest = data.latestWeight()
-    val start = data.startingWeight()
-    val injection = data.latestInjection()
+private fun CurrentStatusCard(data: AppData) {
+    val latestWeight = data.latestWeight()
+    val startingWeight = data.startingWeight()
+    val latestInjection = data.latestInjection()
+    val today = LocalDate.now()
+
     SectionCard("Current status") {
-        MetricRow("Latest weight", latest?.let { "${oneDecimal(it.weightKg)} kg" } ?: "—")
+        MetricRow(
+            "Latest weight",
+            latestWeight?.let { oneDecimal(it.weightKg) + " kg" } ?: "—"
+        )
         MetricRow(
             "Total change",
-            if (latest != null && start != null) {
-                val change = latest.weightKg - start.weightKg
-                val pct = if (start.weightKg != 0.0) change / start.weightKg * 100 else 0.0
-                "${signed(change)} kg · ${signed(pct)}%"
+            if (latestWeight != null && startingWeight != null) {
+                val change = latestWeight.weightKg - startingWeight.weightKg
+                val percent = if (startingWeight.weightKg == 0.0) 0.0
+                else change / startingWeight.weightKg * 100.0
+                signed(change, " kg") + " · " + signed(percent, "%")
             } else "—"
         )
-        MetricRow("Current dose", injection?.let { formatDose(it.doseMg) } ?: "—")
         MetricRow(
-            "Last injection",
-            injection?.let {
-                val days = ChronoUnit.DAYS.between(it.date, LocalDate.now())
-                when {
-                    days == 0L -> "Today"
-                    days == 1L -> "Yesterday"
-                    days > 1 -> "$days days ago"
-                    else -> it.date.format(displayDate)
-                }
-            } ?: "—"
+            "Last dose",
+            latestInjection?.let { formatDose(it.doseMg) } ?: "—"
         )
-        if (injection != null) {
-            val countAtDose = data.injections.count { it.doseMg == injection.doseMg && !it.date.isAfter(injection.date) }
-            MetricRow("Injections at ${formatDose(injection.doseMg)}", countAtDose.toString())
+
+        if (latestInjection != null) {
+            val days = ChronoUnit.DAYS.between(latestInjection.date, today)
+            val windowText = when {
+                days < 0 -> "Future entry"
+                days <= 6 -> "Day " + (days + 1) + " of 7"
+                else -> "Outside 7-day window"
+            }
+            MetricRow("Dose window", windowText)
+
+            val currentRun = data.injections
+                .sortedBy { it.date }
+                .asReversed()
+                .takeWhile { it.doseMg == latestInjection.doseMg }
+                .size
+            MetricRow(
+                "Current dose run",
+                currentRun.toString() + " injection" + if (currentRun == 1) "" else "s"
+            )
+            MetricRow(
+                "7-day point",
+                latestInjection.date.plusDays(7).format(DisplayDateFormatter)
+            )
         }
     }
 }
 
 @Composable
-private fun RecentEvents(data: AppData) {
-    val events = buildList {
-        data.weights.forEach { add(Triple(it.date, "Weight", "${oneDecimal(it.weightKg)} kg")) }
-        data.injections.forEach { add(Triple(it.date, "Injection", formatDose(it.doseMg))) }
-    }.sortedByDescending { it.first }.take(6)
+private fun RecentHistoryCard(data: AppData) {
+    val rows = buildList<SimpleEvent> {
+        data.weights.forEach {
+            add(SimpleEvent(it.date, "Weight", oneDecimal(it.weightKg) + " kg", false))
+        }
+        data.injections.forEach {
+            add(SimpleEvent(it.date, "Injection", formatDose(it.doseMg), true))
+        }
+        data.dayLogs.forEach {
+            add(SimpleEvent(it.date, "Daily note", it.sideEffects.ifBlank { "Notes saved" }, false))
+        }
+    }.sortedByDescending { it.date }.take(6)
 
     SectionCard("Recent history") {
-        if (events.isEmpty()) {
-            EmptyHint("Your first saved weight or injection will appear here.")
+        if (rows.isEmpty()) {
+            EmptyState("Your first saved entry will appear here.")
         } else {
-            events.forEachIndexed { index, e ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+            rows.forEachIndexed { index, row ->
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
-                        if (e.second == "Weight") Icons.Default.MonitorWeight else Icons.Default.Vaccines,
+                        if (row.injection) Icons.Default.Vaccines else Icons.Default.MonitorWeight,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )
-                    Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                        Text(e.second, fontWeight = FontWeight.Medium)
-                        Text(e.first.format(displayDate), style = MaterialTheme.typography.bodySmall)
+                    Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+                        Text(row.title, fontWeight = FontWeight.Medium)
+                        Text(
+                            row.date.format(DisplayDateFormatter),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    Text(e.third, fontWeight = FontWeight.SemiBold)
+                    Text(row.value, fontWeight = FontWeight.SemiBold)
                 }
-                if (index != events.lastIndex) HorizontalDivider()
+                if (index != rows.lastIndex) HorizontalDivider()
             }
         }
     }
 }
 
+private data class SimpleEvent(
+    val date: LocalDate,
+    val title: String,
+    val value: String,
+    val injection: Boolean
+)
+
 @Composable
 private fun ProgressScreen(data: AppData) {
-    val context = LocalContext.current
-    var preset by rememberSaveable { mutableStateOf(RangePreset.TWO_MONTHS) }
-    var customStart by rememberSaveable { mutableStateOf<String?>(null) }
-    var mode by rememberSaveable { mutableStateOf(GraphMode.WEIGHT) }
-    val end = LocalDate.now()
-    val start = defaultStart(data, preset, customStart?.let(LocalDate::parse))
+    var modeName by rememberSaveable { mutableStateOf(GraphMode.WEIGHT.name) }
+    var presetName by rememberSaveable { mutableStateOf(RangePreset.TWO_MONTHS.name) }
+    var customStartText by rememberSaveable { mutableStateOf(LocalDate.now().minusMonths(2).toString()) }
+    var customEndText by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+    var doseBands by rememberSaveable { mutableStateOf(true) }
+    var injectionPosts by rememberSaveable { mutableStateOf(true) }
+    var milestones by rememberSaveable { mutableStateOf(true) }
+
+    val mode = GraphMode.valueOf(modeName)
+    val preset = RangePreset.valueOf(presetName)
+    val end = if (preset == RangePreset.CUSTOM) LocalDate.parse(customEndText) else LocalDate.now()
+    val initialStart = graphStart(
+        data,
+        preset,
+        if (preset == RangePreset.CUSTOM) LocalDate.parse(customStartText) else null,
+        end
+    )
+    val start = if (initialStart.isAfter(end)) end else initialStart
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        Modifier.fillMaxSize().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
             Spacer(Modifier.height(8.dp))
-            Text("Progress", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text("Dose context is descriptive, not a claim of causation.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "Progress",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Colours show timing context; they do not prove that a dose caused a weight change.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(GraphMode.entries) { m ->
-                    FilterChip(selected = mode == m, onClick = { mode = m }, label = { Text(m.label) })
-                }
-            }
-        }
-        item {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(RangePreset.entries) { r ->
+                items(GraphMode.entries) { item ->
                     FilterChip(
-                        selected = preset == r,
-                        onClick = {
-                            if (r == RangePreset.CUSTOM) {
-                                val initial = customStart?.let(LocalDate::parse) ?: start
-                                DatePickerDialog(
-                                    context,
-                                    { _, y, m, d ->
-                                        customStart = LocalDate.of(y, m + 1, d).toString()
-                                        preset = RangePreset.CUSTOM
-                                    },
-                                    initial.year, initial.monthValue - 1, initial.dayOfMonth
-                                ).show()
-                            } else {
-                                preset = r
-                            }
-                        },
-                        label = { Text(r.label) }
+                        selected = mode == item,
+                        onClick = { modeName = item.name },
+                        label = { Text(item.label) }
                     )
                 }
             }
         }
         item {
-            SectionCard(mode.label) {
-                Text("${start.format(displayDate)} – ${end.format(displayDate)}", style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(6.dp))
-                ProgressChart(data, mode, start, end, Modifier.fillMaxWidth().height(360.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(RangePreset.entries) { item ->
+                    FilterChip(
+                        selected = preset == item,
+                        onClick = { presetName = item.name },
+                        label = { Text(item.label) }
+                    )
+                }
+            }
+        }
+        if (preset == RangePreset.CUSTOM) {
+            item {
+                SectionCard("Custom range") {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(Modifier.weight(1f)) {
+                            DatePickerButton(
+                                date = LocalDate.parse(customStartText),
+                                onDateChange = { customStartText = it.toString() },
+                                label = "From " + LocalDate.parse(customStartText).format(DisplayDateFormatter)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    DatePickerButton(
+                        date = LocalDate.parse(customEndText),
+                        onDateChange = { customEndText = it.toString() },
+                        label = "To " + LocalDate.parse(customEndText).format(DisplayDateFormatter)
+                    )
+                }
             }
         }
         item {
-            DoseLegend()
+            SectionCard(
+                title = mode.label,
+                subtitle = start.format(DisplayDateFormatter) + " – " + end.format(DisplayDateFormatter)
+            ) {
+                ProgressChart(
+                    data = data,
+                    mode = mode,
+                    start = start,
+                    end = end,
+                    options = GraphOptions(
+                        doseBands = doseBands,
+                        injectionPosts = injectionPosts,
+                        milestones = milestones
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(390.dp)
+                )
+            }
+        }
+        if (mode != GraphMode.DOSE) {
+            item {
+                SectionCard("Graph layers") {
+                    ToggleRow("Dose-window backgrounds", doseBands) { doseBands = it }
+                    ToggleRow("Injection & day-7 posts", injectionPosts) { injectionPosts = it }
+                    if (mode == GraphMode.WEIGHT) {
+                        ToggleRow("Milestones", milestones) { milestones = it }
+                    }
+                }
+            }
+        }
+        item {
+            SectionCard(
+                title = "Dose colours",
+                subtitle = "2.5 mg and measurements outside a 7-day window are grey."
+            ) {
+                SupportedDoses.chunked(3).forEach { row ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        row.forEach { dose ->
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                DoseDot(dose)
+                                Text("  " + formatDose(dose))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            VisibleRangeSummary(data, start, end)
         }
         item { Spacer(Modifier.height(8.dp)) }
     }
 }
 
 @Composable
-private fun ProgressChart(
+private fun ToggleRow(label: String, checked: Boolean, onChecked: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label)
+        Switch(checked = checked, onCheckedChange = onChecked)
+    }
+}
+
+@Composable
+private fun VisibleRangeSummary(data: AppData, start: LocalDate, end: LocalDate) {
+    val weights = data.weights.filter { !it.date.isBefore(start) && !it.date.isAfter(end) }
+    SectionCard("Visible range") {
+        MetricRow("Measurements", weights.size.toString())
+        if (weights.size >= 2) {
+            val delta = weights.last().weightKg - weights.first().weightKg
+            MetricRow("Weight change", signed(delta, " kg"))
+        } else {
+            MetricRow("Weight change", "—")
+        }
+        MetricRow(
+            "Injections",
+            data.injections.count { !it.date.isBefore(start) && !it.date.isAfter(end) }.toString()
+        )
+    }
+}
+
+@Composable
+private fun CalendarScreen(
     data: AppData,
-    mode: GraphMode,
-    start: LocalDate,
-    end: LocalDate,
-    modifier: Modifier = Modifier
+    viewModel: MainViewModel,
+    onAddEntry: (LocalDate) -> Unit,
+    notify: (Result<Unit>, String) -> Unit
 ) {
-    val weights = data.weights.filter { !it.date.isBefore(start) && !it.date.isAfter(end) }.sortedBy { it.date }
-    val injections = data.injections.filter { !it.date.plusDays(6).isBefore(start) && !it.date.isAfter(end) }.sortedBy { it.date }
-
-    if ((mode != GraphMode.DOSE && weights.isEmpty()) || (mode == GraphMode.DOSE && injections.isEmpty())) {
-        Box(modifier, contentAlignment = Alignment.Center) { EmptyHint("Not enough data in this range yet.") }
-        return
-    }
-
-    val totalDays = max(1L, ChronoUnit.DAYS.between(start, end)).toFloat()
-    val startWeight = data.startingWeight()?.weightKg
-
-    val points: List<Pair<LocalDate, Double>> = when (mode) {
-        GraphMode.WEIGHT -> weights.map { it.date to it.weightKg }
-        GraphMode.CHANGE -> weights.map { it.date to ((startWeight ?: it.weightKg) - it.weightKg) }
-        GraphMode.DOSE -> injections.map { it.date to it.doseMg }
-        GraphMode.WEEKLY -> weights.zipWithNext().mapNotNull { (a, b) ->
-            val days = ChronoUnit.DAYS.between(a.date, b.date).toDouble()
-            if (days <= 0) null else b.date to ((a.weightKg - b.weightKg) * 7.0 / days)
-        }
-    }
-
-    if (points.isEmpty()) {
-        Box(modifier, contentAlignment = Alignment.Center) { EmptyHint("More measurements are needed for this view.") }
-        return
-    }
-
-    val rawMin = points.minOf { it.second }
-    val rawMax = points.maxOf { it.second }
-    val pad = max(0.5, (rawMax - rawMin) * 0.18)
-    val yMin = if (rawMin == rawMax) rawMin - 1.0 else rawMin - pad
-    val yMax = if (rawMin == rawMax) rawMax + 1.0 else rawMax + pad
-
-    val chartSurface = MaterialTheme.colorScheme.surface
-    val lineColor = MaterialTheme.colorScheme.primary
-
-    Canvas(modifier = modifier.background(chartSurface, RoundedCornerShape(12.dp))) {
-        val left = 8.dp.toPx()
-        val right = size.width - 8.dp.toPx()
-        val top = 12.dp.toPx()
-        val bottom = size.height - 16.dp.toPx()
-        val chartWidth = right - left
-        val chartHeight = bottom - top
-
-        fun x(date: LocalDate): Float {
-            val d = ChronoUnit.DAYS.between(start, date).toFloat().coerceIn(0f, totalDays)
-            return left + (d / totalDays) * chartWidth
-        }
-        fun y(value: Double): Float {
-            val fraction = ((value - yMin) / (yMax - yMin)).toFloat().coerceIn(0f, 1f)
-            return bottom - fraction * chartHeight
-        }
-
-        if (mode != GraphMode.DOSE) {
-            injections.forEach { injection ->
-                val bandStart = maxDate(start, injection.date)
-                val bandEnd = minDate(end, injection.date.plusDays(6))
-                if (!bandEnd.isBefore(bandStart)) {
-                    val color = doseColor(injection.doseMg)
-                    val x1 = x(bandStart)
-                    val x2 = if (bandEnd == end) right else x(bandEnd.plusDays(1))
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            listOf(color.copy(alpha = 0.03f), color.copy(alpha = 0.22f)),
-                            startY = top,
-                            endY = bottom
-                        ),
-                        topLeft = Offset(x1, top),
-                        size = androidx.compose.ui.geometry.Size((x2 - x1).coerceAtLeast(2f), chartHeight)
-                    )
-                    drawLine(color.copy(alpha = 0.65f), Offset(x(maxDate(injection.date, start)), top), Offset(x(maxDate(injection.date, start)), bottom), 2.dp.toPx())
-                    val endPost = injection.date.plusDays(7)
-                    if (!endPost.isAfter(end)) {
-                        drawLine(color.copy(alpha = 0.55f), Offset(x(endPost), top), Offset(x(endPost), bottom), 2.dp.toPx())
-                    }
-                }
-            }
-        }
-
-        repeat(4) { i ->
-            val yy = top + chartHeight * i / 3f
-            drawLine(Color.Gray.copy(alpha = 0.16f), Offset(left, yy), Offset(right, yy), 1.dp.toPx())
-        }
-
-        val dotted = PathEffect.dashPathEffect(floatArrayOf(10.dp.toPx(), 8.dp.toPx()))
-
-        points.zipWithNext().forEach { (a, b) ->
-            val gapDays = ChronoUnit.DAYS.between(a.first, b.first)
-            drawLine(
-                color = lineColor,
-                start = Offset(x(a.first), y(a.second)),
-                end = Offset(x(b.first), y(b.second)),
-                strokeWidth = 3.dp.toPx(),
-                pathEffect = if (mode != GraphMode.DOSE && gapDays > 1) dotted else null
-            )
-        }
-
-        if (mode != GraphMode.DOSE && points.isNotEmpty() && points.last().first.isBefore(end)) {
-            val p = points.last()
-            drawLine(
-                color = lineColor.copy(alpha = 0.75f),
-                start = Offset(x(p.first), y(p.second)),
-                end = Offset(right, y(p.second)),
-                strokeWidth = 2.dp.toPx(),
-                pathEffect = dotted
-            )
-        }
-
-        points.forEach { p ->
-            val pointColor = if (mode == GraphMode.WEIGHT || mode == GraphMode.CHANGE) {
-                val ctx = data.doseContextFor(p.first)
-                if (ctx.doseMg == null || ctx.doseMg == 2.5) Color.Gray else doseColor(ctx.doseMg)
-            } else if (mode == GraphMode.DOSE) doseColor(p.second) else lineColor
-            drawCircle(pointColor, radius = 5.dp.toPx(), center = Offset(x(p.first), y(p.second)))
-        }
-
-        data.milestones
-            .filter { mode == GraphMode.WEIGHT && it.targetKg in yMin..yMax }
-            .forEach { milestone ->
-                drawLine(
-                    color = Color.Gray.copy(alpha = 0.55f),
-                    start = Offset(left, y(milestone.targetKg)),
-                    end = Offset(right, y(milestone.targetKg)),
-                    strokeWidth = 1.5.dp.toPx(),
-                    pathEffect = dotted
-                )
-            }
-    }
-}
-
-@Composable
-private fun DoseLegend() {
-    SectionCard("Dose colours") {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(2.5, 5.0, 7.5).forEach { dose -> DoseLegendItem(dose) }
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(10.0, 12.5, 15.0).forEach { dose -> DoseLegendItem(dose) }
-        }
-        Spacer(Modifier.height(6.dp))
-        Text("Grey also marks measurements outside a 7-day injection window.", style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-@Composable
-private fun DoseLegendItem(dose: Double) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(10.dp).background(doseColor(dose), RoundedCornerShape(50)))
-        Text("  ${formatDose(dose)}", style = MaterialTheme.typography.bodySmall)
-    }
-}
-
-@Composable
-private fun CalendarScreen(data: AppData) {
     var monthText by rememberSaveable { mutableStateOf(YearMonth.now().toString()) }
-    val month = YearMonth.parse(monthText)
-    val first = month.atDay(1)
-    val days = month.lengthOfMonth()
-    val leading = first.dayOfWeek.value - 1
+    var selectedDateText by rememberSaveable { mutableStateOf<String?>(null) }
+    var editingWeight by remember { mutableStateOf<WeightMeasurement?>(null) }
+    var editingInjection by remember { mutableStateOf<Injection?>(null) }
+    var editingDayDate by remember { mutableStateOf<LocalDate?>(null) }
 
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val month = YearMonth.parse(monthText)
+    val leading = month.atDay(1).dayOfWeek.value - 1
+    val days = month.lengthOfMonth()
+
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         item {
             Spacer(Modifier.height(8.dp))
-            Text("Calendar", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Calendar",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Tap a day to view or change its records.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = { monthText = month.minusMonths(1).toString() }) { Text("‹") }
-                Text(month.format(DateTimeFormatter.ofPattern("MMMM uuuu")), style = MaterialTheme.typography.titleLarge)
-                OutlinedButton(onClick = { monthText = month.plusMonths(1).toString() }) { Text("›") }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(onClick = { monthText = month.minusMonths(1).toString() }) {
+                    Text("‹")
+                }
+                Text(
+                    month.atDay(1).format(MonthFormatter),
+                    style = MaterialTheme.typography.titleLarge
+                )
+                OutlinedButton(onClick = { monthText = month.plusMonths(1).toString() }) {
+                    Text("›")
+                }
             }
         }
         item {
             SectionCard("Month") {
                 Row(Modifier.fillMaxWidth()) {
-                    listOf("M","T","W","T","F","S","S").forEach { Text(it, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold) }
+                    listOf("M", "T", "W", "T", "F", "S", "S").forEach {
+                        Text(
+                            it,
+                            modifier = Modifier.weight(1f),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
                 val slots = leading + days
-                for (row in 0 until ((slots + 6) / 7)) {
+                for (rowIndex in 0 until ((slots + 6) / 7)) {
                     Row(Modifier.fillMaxWidth()) {
                         for (col in 0..6) {
-                            val day = row * 7 + col - leading + 1
+                            val day = rowIndex * 7 + col - leading + 1
                             if (day !in 1..days) {
-                                Spacer(Modifier.weight(1f).height(64.dp))
+                                Spacer(Modifier.weight(1f).height(68.dp))
                             } else {
                                 val date = month.atDay(day)
-                                val weight = data.weights.lastOrNull { it.date == date }
-                                val injection = data.injections.lastOrNull { it.date == date }
+                                val dayWeights = data.weights.filter { it.date == date }
+                                val dayInjections = data.injections.filter { it.date == date }
+                                val dayLog = data.dayLogs.any { it.date == date }
                                 Column(
-                                    Modifier.weight(1f).height(64.dp).padding(3.dp),
+                                    Modifier
+                                        .weight(1f)
+                                        .height(68.dp)
+                                        .clickable { selectedDateText = date.toString() }
+                                        .padding(3.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(day.toString(), fontWeight = if (date == LocalDate.now()) FontWeight.Bold else FontWeight.Normal)
-                                    if (weight != null) Text("●", color = doseColor(data.doseContextFor(date).doseMg))
-                                    if (injection != null) Text("◆", color = doseColor(injection.doseMg))
+                                    Text(
+                                        day.toString(),
+                                        fontWeight = if (date == LocalDate.now()) FontWeight.Bold
+                                        else FontWeight.Normal
+                                    )
+                                    if (dayWeights.isNotEmpty()) {
+                                        Text(
+                                            "●",
+                                            color = doseColor(data.doseContextFor(date).doseMg)
+                                        )
+                                    }
+                                    if (dayInjections.isNotEmpty()) {
+                                        Text("◆", color = doseColor(dayInjections.last().doseMg))
+                                    }
+                                    if (dayLog) {
+                                        Text("•", color = MaterialTheme.colorScheme.secondary)
+                                    }
                                 }
                             }
                         }
@@ -591,207 +822,770 @@ private fun CalendarScreen(data: AppData) {
         }
         item {
             val monthWeights = data.weights.filter { YearMonth.from(it.date) == month }
-            val monthInjections = data.injections.count { YearMonth.from(it.date) == month }
             SectionCard("Month summary") {
                 MetricRow("Measurements", monthWeights.size.toString())
-                MetricRow("Injections", monthInjections.toString())
-                val change = if (monthWeights.size >= 2) monthWeights.last().weightKg - monthWeights.first().weightKg else null
-                MetricRow("Weight change", change?.let { "${signed(it)} kg" } ?: "—")
-            }
-        }
-    }
-}
-
-@Composable
-private fun HistoryScreen(data: AppData, viewModel: MainViewModel) {
-    val events = buildList<HistoryItem> {
-        data.weights.forEach { add(HistoryItem.Weight(it)) }
-        data.injections.forEach { add(HistoryItem.Dose(it)) }
-    }.sortedByDescending { it.date }
-
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item {
-            Spacer(Modifier.height(8.dp))
-            Text("History", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text("Weight and injection records stay independent.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (events.isEmpty()) {
-            item { EmptyHint("No history yet.") }
-        } else {
-            items(events, key = { it.key }) { event ->
-                Card {
-                    Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            if (event is HistoryItem.Weight) Icons.Default.MonitorWeight else Icons.Default.Vaccines,
-                            contentDescription = null
-                        )
-                        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                            Text(event.title, fontWeight = FontWeight.SemiBold)
-                            Text(event.date.format(displayDate), style = MaterialTheme.typography.bodySmall)
-                            if (event is HistoryItem.Weight) {
-                                val ctx = data.doseContextFor(event.item.date)
-                                Text(
-                                    if (ctx.doseMg == null) "Outside dose window"
-                                    else "Day ${ctx.dayInWindow} of ${formatDose(ctx.doseMg)} window",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = doseColor(ctx.doseMg)
-                                )
-                            }
-                        }
-                        IconButton(onClick = {
-                            when (event) {
-                                is HistoryItem.Weight -> viewModel.deleteWeight(event.item.id)
-                                is HistoryItem.Dose -> viewModel.deleteInjection(event.item.id)
-                            }
-                        }) { Icon(Icons.Default.Delete, "Delete") }
-                    }
-                }
+                MetricRow(
+                    "Injections",
+                    data.injections.count { YearMonth.from(it.date) == month }.toString()
+                )
+                MetricRow(
+                    "Daily notes",
+                    data.dayLogs.count { YearMonth.from(it.date) == month }.toString()
+                )
+                MetricRow(
+                    "Weight change",
+                    if (monthWeights.size >= 2) {
+                        signed(monthWeights.last().weightKg - monthWeights.first().weightKg, " kg")
+                    } else "—"
+                )
             }
         }
         item { Spacer(Modifier.height(8.dp)) }
     }
-}
 
-private sealed class HistoryItem {
-    abstract val date: LocalDate
-    abstract val key: String
-    abstract val title: String
-
-    data class Weight(val item: WeightMeasurement) : HistoryItem() {
-        override val date = item.date
-        override val key = "w${item.id}"
-        override val title = "${oneDecimal(item.weightKg)} kg"
+    selectedDateText?.let { text ->
+        val date = LocalDate.parse(text)
+        DayDetailsDialog(
+            date = date,
+            data = data,
+            onDismiss = { selectedDateText = null },
+            onAddEntry = {
+                selectedDateText = null
+                onAddEntry(date)
+            },
+            onEditWeight = {
+                selectedDateText = null
+                editingWeight = it
+            },
+            onEditInjection = {
+                selectedDateText = null
+                editingInjection = it
+            },
+            onEditDaily = {
+                selectedDateText = null
+                editingDayDate = date
+            }
+        )
     }
-    data class Dose(val item: Injection) : HistoryItem() {
-        override val date = item.date
-        override val key = "d${item.id}"
-        override val title = "${formatDose(item.doseMg)} injection"
+
+    editingWeight?.let { item ->
+        WeightEditorDialog(
+            item = item,
+            onDismiss = { editingWeight = null },
+            onSave = { date, weight, note ->
+                viewModel.updateWeight(item.id, date, weight, note) {
+                    notify(it, "Weight updated.")
+                    if (it.isSuccess) editingWeight = null
+                }
+            },
+            onDelete = {
+                viewModel.deleteWeight(item.id) {
+                    notify(it, "Weight deleted.")
+                    if (it.isSuccess) editingWeight = null
+                }
+            }
+        )
+    }
+
+    editingInjection?.let { item ->
+        InjectionEditorDialog(
+            item = item,
+            onDismiss = { editingInjection = null },
+            onSave = { date, dose, site, note ->
+                viewModel.updateInjection(item.id, date, dose, site, note) {
+                    notify(it, "Injection updated.")
+                    if (it.isSuccess) editingInjection = null
+                }
+            },
+            onDelete = {
+                viewModel.deleteInjection(item.id) {
+                    notify(it, "Injection deleted.")
+                    if (it.isSuccess) editingInjection = null
+                }
+            }
+        )
+    }
+
+    editingDayDate?.let { date ->
+        val log = data.dayLogs.lastOrNull { it.date == date }
+        DayLogEditorDialog(
+            initialDate = date,
+            item = log,
+            onDismiss = { editingDayDate = null },
+            onSave = { appetite, sideEffects, note ->
+                viewModel.upsertDayLog(date, appetite, sideEffects, note) {
+                    notify(it, "Daily notes updated.")
+                    if (it.isSuccess) editingDayDate = null
+                }
+            },
+            onDelete = log?.let {
+                {
+                    viewModel.deleteDayLog(it.id) { result ->
+                        notify(result, "Daily note deleted.")
+                        if (result.isSuccess) editingDayDate = null
+                    }
+                }
+            }
+        )
     }
 }
 
 @Composable
-private fun StatsScreen(data: AppData) {
-    val start = data.startingWeight()
-    val latest = data.latestWeight()
-    val lowest = data.weights.minByOrNull { it.weightKg }
-    val injection = data.latestInjection()
+private fun DayDetailsDialog(
+    date: LocalDate,
+    data: AppData,
+    onDismiss: () -> Unit,
+    onAddEntry: () -> Unit,
+    onEditWeight: (WeightMeasurement) -> Unit,
+    onEditInjection: (Injection) -> Unit,
+    onEditDaily: () -> Unit
+) {
+    val weights = data.weights.filter { it.date == date }
+    val injections = data.injections.filter { it.date == date }
+    val log = data.dayLogs.lastOrNull { it.date == date }
 
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(date.format(DisplayDateFormatter)) },
+        text = {
+            Column(
+                Modifier.fillMaxWidth().heightIn(max = 500.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (weights.isEmpty() && injections.isEmpty() && log == null) {
+                    EmptyState("Nothing logged on this day.")
+                }
+                weights.forEach { weight ->
+                    Card(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { onEditWeight(weight) }
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Weight")
+                            Text(oneDecimal(weight.weightKg) + " kg", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                injections.forEach { injection ->
+                    Card(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { onEditInjection(injection) }
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                DoseDot(injection.doseMg)
+                                Text("  Injection")
+                            }
+                            Text(formatDose(injection.doseMg), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                if (log != null) {
+                    Card(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onEditDaily)
+                    ) {
+                        Column(Modifier.padding(12.dp)) {
+                            Text("Daily notes", fontWeight = FontWeight.SemiBold)
+                            log.appetite?.let { Text("Appetite: " + it + "/5") }
+                            if (log.sideEffects.isNotBlank()) Text(log.sideEffects)
+                            if (log.note.isNotBlank()) Text(log.note)
+                        }
+                    }
+                } else {
+                    TextButton(onClick = onEditDaily) { Text("Add daily notes") }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onAddEntry) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Text("  Add entry")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
+@Composable
+private fun HistoryScreen(
+    data: AppData,
+    viewModel: MainViewModel,
+    notify: (Result<Unit>, String) -> Unit
+) {
+    var filterName by rememberSaveable { mutableStateOf(HistoryFilter.ALL.name) }
+    var editingWeight by remember { mutableStateOf<WeightMeasurement?>(null) }
+    var editingInjection by remember { mutableStateOf<Injection?>(null) }
+    var editingDayLog by remember { mutableStateOf<DayLog?>(null) }
+    val filter = HistoryFilter.valueOf(filterName)
+
+    val events = buildList<HistoryRow> {
+        if (filter == HistoryFilter.ALL || filter == HistoryFilter.WEIGHT) {
+            data.weights.forEach { add(HistoryRow.Weight(it)) }
+        }
+        if (filter == HistoryFilter.ALL || filter == HistoryFilter.INJECTION) {
+            data.injections.forEach { add(HistoryRow.Dose(it)) }
+        }
+        if (filter == HistoryFilter.ALL || filter == HistoryFilter.NOTES) {
+            data.dayLogs.forEach { add(HistoryRow.Note(it)) }
+        }
+    }.sortedWith(compareByDescending<HistoryRow> { it.date }.thenByDescending { it.sortOrder })
+
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         item {
             Spacer(Modifier.height(8.dp))
-            Text("Stats", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "History",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Tap any record to edit it.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         item {
-            SectionCard("Overview") {
-                MetricRow("Starting weight", start?.let { "${oneDecimal(it.weightKg)} kg" } ?: "—")
-                MetricRow("Latest weight", latest?.let { "${oneDecimal(it.weightKg)} kg" } ?: "—")
-                MetricRow("Lowest weight", lowest?.let { "${oneDecimal(it.weightKg)} kg" } ?: "—")
-                MetricRow(
-                    "Total change",
-                    if (start != null && latest != null) "${signed(latest.weightKg - start.weightKg)} kg" else "—"
-                )
-                MetricRow(
-                    "Body-weight change",
-                    if (start != null && latest != null && start.weightKg != 0.0)
-                        "${signed((latest.weightKg - start.weightKg) / start.weightKg * 100)}%" else "—"
-                )
-                MetricRow("Measurements", data.weights.size.toString())
-                MetricRow("Injections", data.injections.size.toString())
-            }
-        }
-        item {
-            SectionCard("Current dose") {
-                MetricRow("Dose", injection?.let { formatDose(it.doseMg) } ?: "—")
-                MetricRow(
-                    "Injection count at dose",
-                    injection?.let { current -> data.injections.count { it.doseMg == current.doseMg }.toString() } ?: "—"
-                )
-                val currentDoseWeights = injection?.let { current ->
-                    val firstDoseDate = data.injections.filter { it.doseMg == current.doseMg }.minByOrNull { it.date }?.date
-                    if (firstDoseDate == null) emptyList() else data.weights.filter { !it.date.isBefore(firstDoseDate) }
-                }.orEmpty()
-                MetricRow(
-                    "Change since dose began",
-                    if (currentDoseWeights.size >= 2)
-                        "${signed(currentDoseWeights.last().weightKg - currentDoseWeights.first().weightKg)} kg"
-                    else "—"
-                )
-            }
-        }
-        item {
-            SectionCard("By dose") {
-                SupportedDoses.forEach { dose ->
-                    val doseInjections = data.injections.filter { it.doseMg == dose }
-                    val contexts = data.weights.filter { data.doseContextFor(it.date).doseMg == dose }
-                    val delta = if (contexts.size >= 2) contexts.last().weightKg - contexts.first().weightKg else null
-                    MetricRow(
-                        formatDose(dose),
-                        "${doseInjections.size} inj." + (delta?.let { " · ${signed(it)} kg" } ?: "")
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(HistoryFilter.entries) { item ->
+                    FilterChip(
+                        selected = filter == item,
+                        onClick = { filterName = item.name },
+                        label = { Text(item.label) }
                     )
                 }
             }
         }
+        if (events.isEmpty()) {
+            item { EmptyState("No records in this filter yet.") }
+        } else {
+            items(events, key = { it.key }) { event ->
+                HistoryCard(
+                    event = event,
+                    data = data,
+                    onClick = {
+                        when (event) {
+                            is HistoryRow.Weight -> editingWeight = event.item
+                            is HistoryRow.Dose -> editingInjection = event.item
+                            is HistoryRow.Note -> editingDayLog = event.item
+                        }
+                    }
+                )
+            }
+        }
         item { Spacer(Modifier.height(8.dp)) }
+    }
+
+    editingWeight?.let { item ->
+        WeightEditorDialog(
+            item = item,
+            onDismiss = { editingWeight = null },
+            onSave = { date, weight, note ->
+                viewModel.updateWeight(item.id, date, weight, note) {
+                    notify(it, "Weight updated.")
+                    if (it.isSuccess) editingWeight = null
+                }
+            },
+            onDelete = {
+                viewModel.deleteWeight(item.id) {
+                    notify(it, "Weight deleted.")
+                    if (it.isSuccess) editingWeight = null
+                }
+            }
+        )
+    }
+
+    editingInjection?.let { item ->
+        InjectionEditorDialog(
+            item = item,
+            onDismiss = { editingInjection = null },
+            onSave = { date, dose, site, note ->
+                viewModel.updateInjection(item.id, date, dose, site, note) {
+                    notify(it, "Injection updated.")
+                    if (it.isSuccess) editingInjection = null
+                }
+            },
+            onDelete = {
+                viewModel.deleteInjection(item.id) {
+                    notify(it, "Injection deleted.")
+                    if (it.isSuccess) editingInjection = null
+                }
+            }
+        )
+    }
+
+    editingDayLog?.let { item ->
+        DayLogEditorDialog(
+            initialDate = item.date,
+            item = item,
+            onDismiss = { editingDayLog = null },
+            onSave = { appetite, sideEffects, note ->
+                viewModel.upsertDayLog(item.date, appetite, sideEffects, note) {
+                    notify(it, "Daily notes updated.")
+                    if (it.isSuccess) editingDayLog = null
+                }
+            },
+            onDelete = {
+                viewModel.deleteDayLog(item.id) {
+                    notify(it, "Daily note deleted.")
+                    if (it.isSuccess) editingDayLog = null
+                }
+            }
+        )
+    }
+}
+
+private sealed class HistoryRow {
+    abstract val date: LocalDate
+    abstract val key: String
+    abstract val sortOrder: Int
+
+    data class Weight(val item: WeightMeasurement) : HistoryRow() {
+        override val date = item.date
+        override val key = "weight-" + item.id
+        override val sortOrder = 3
+    }
+
+    data class Dose(val item: Injection) : HistoryRow() {
+        override val date = item.date
+        override val key = "dose-" + item.id
+        override val sortOrder = 2
+    }
+
+    data class Note(val item: DayLog) : HistoryRow() {
+        override val date = item.date
+        override val key = "note-" + item.id
+        override val sortOrder = 1
     }
 }
 
 @Composable
-private fun SectionCard(title: String, content: @Composable () -> Unit) {
+private fun HistoryCard(
+    event: HistoryRow,
+    data: AppData,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = when (event) {
+                is HistoryRow.Weight -> {
+                    doseColor(data.doseContextFor(event.item.date).doseMg).copy(alpha = 0.08f)
+                }
+                is HistoryRow.Dose -> doseColor(event.item.doseMg).copy(alpha = 0.08f)
+                is HistoryRow.Note -> MaterialTheme.colorScheme.surfaceContainer
+            }
+        )
     ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(10.dp))
-            content()
+        Row(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                when (event) {
+                    is HistoryRow.Weight -> Icons.Default.MonitorWeight
+                    is HistoryRow.Dose -> Icons.Default.Vaccines
+                    is HistoryRow.Note -> Icons.Default.ListAlt
+                },
+                contentDescription = null
+            )
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(
+                    when (event) {
+                        is HistoryRow.Weight -> oneDecimal(event.item.weightKg) + " kg"
+                        is HistoryRow.Dose -> formatDose(event.item.doseMg) + " injection"
+                        is HistoryRow.Note -> "Daily notes"
+                    },
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    event.date.format(DisplayDateFormatter),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                when (event) {
+                    is HistoryRow.Weight -> {
+                        val context = data.doseContextFor(event.item.date)
+                        Text(
+                            if (context.doseMg == null) "Outside dose window"
+                            else "Day " + context.dayInWindow + " of " + formatDose(context.doseMg),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = doseColor(context.doseMg)
+                        )
+                        if (event.item.note.isNotBlank()) {
+                            Text(event.item.note, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    is HistoryRow.Dose -> {
+                        if (event.item.injectionSite.isNotBlank()) {
+                            Text(
+                                "Site: " + event.item.injectionSite,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        if (event.item.note.isNotBlank()) {
+                            Text(event.item.note, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    is HistoryRow.Note -> {
+                        event.item.appetite?.let {
+                            Text("Appetite: " + it + "/5", style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (event.item.sideEffects.isNotBlank()) {
+                            Text(event.item.sideEffects, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+            Text("›", style = MaterialTheme.typography.titleLarge)
         }
     }
 }
 
 @Composable
-private fun MetricRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontWeight = FontWeight.SemiBold)
+private fun MoreScreen(
+    data: AppData,
+    viewModel: MainViewModel,
+    notify: (Result<Unit>, String) -> Unit
+) {
+    var editingMilestone by remember { mutableStateOf<Milestone?>(null) }
+    var addingMilestone by rememberSaveable { mutableStateOf(false) }
+
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Stats & data",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Your numbers stay descriptive; treatment decisions are not automated.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        item { OverviewStats(data) }
+        item { CurrentDoseStats(data) }
+        item { DoseBreakdown(data) }
+        item {
+            SectionCard("Milestones") {
+                if (data.milestones.isEmpty()) {
+                    EmptyState("Add your own target lines to the weight graph.")
+                } else {
+                    data.milestones.forEach { milestone ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { editingMilestone = milestone }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    oneDecimal(milestone.targetKg) + " kg",
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                if (milestone.label.isNotBlank()) {
+                                    Text(
+                                        milestone.label,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                            Text("›", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                }
+                FilledTonalButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { addingMilestone = true }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Text("  Add milestone")
+                }
+            }
+        }
+        item {
+            DataManagementCard(data, viewModel, notify)
+        }
+        item {
+            SectionCard("About") {
+                MetricRow("App version", BuildConfig.VERSION_NAME)
+                MetricRow("Storage", "On-device SQLite")
+                Text(
+                    "Normal app updates preserve the database. Uninstalling Android apps can remove private app data, so export a JSON backup before changing phones or uninstalling.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        item { Spacer(Modifier.height(8.dp)) }
+    }
+
+    if (addingMilestone) {
+        MilestoneEditorDialog(
+            item = null,
+            onDismiss = { addingMilestone = false },
+            onSave = { target, label ->
+                viewModel.addMilestone(target, label) {
+                    notify(it, "Milestone added.")
+                    if (it.isSuccess) addingMilestone = false
+                }
+            }
+        )
+    }
+
+    editingMilestone?.let { milestone ->
+        MilestoneEditorDialog(
+            item = milestone,
+            onDismiss = { editingMilestone = null },
+            onSave = { target, label ->
+                viewModel.updateMilestone(milestone.id, target, label) {
+                    notify(it, "Milestone updated.")
+                    if (it.isSuccess) editingMilestone = null
+                }
+            },
+            onDelete = {
+                viewModel.deleteMilestone(milestone.id) {
+                    notify(it, "Milestone deleted.")
+                    if (it.isSuccess) editingMilestone = null
+                }
+            }
+        )
     }
 }
 
 @Composable
-private fun EmptyHint(text: String) {
-    Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
-}
+private fun OverviewStats(data: AppData) {
+    val start = data.startingWeight()
+    val latest = data.latestWeight()
+    val lowest = data.weights.minByOrNull { it.weightKg }
 
-private fun defaultStart(data: AppData, preset: RangePreset, custom: LocalDate?): LocalDate {
-    val today = LocalDate.now()
-    return when (preset) {
-        RangePreset.MONTH -> today.minusMonths(1)
-        RangePreset.TWO_MONTHS -> today.minusMonths(2)
-        RangePreset.THREE_MONTHS -> today.minusMonths(3)
-        RangePreset.SIX_MONTHS -> today.minusMonths(6)
-        RangePreset.YEAR -> today.minusYears(1)
-        RangePreset.ALL -> listOfNotNull(
-            data.weights.minByOrNull { it.date }?.date,
-            data.injections.minByOrNull { it.date }?.date
-        ).minOrNull() ?: today.minusMonths(1)
-        RangePreset.CUSTOM -> custom ?: today.minusMonths(2)
+    SectionCard("Overview") {
+        MetricRow("Starting weight", start?.let { oneDecimal(it.weightKg) + " kg" } ?: "—")
+        MetricRow("Latest weight", latest?.let { oneDecimal(it.weightKg) + " kg" } ?: "—")
+        MetricRow("Lowest recorded", lowest?.let { oneDecimal(it.weightKg) + " kg" } ?: "—")
+        MetricRow(
+            "Total change",
+            if (start != null && latest != null) {
+                signed(latest.weightKg - start.weightKg, " kg")
+            } else "—"
+        )
+        MetricRow(
+            "Body-weight change",
+            if (start != null && latest != null && start.weightKg != 0.0) {
+                signed((latest.weightKg - start.weightKg) / start.weightKg * 100.0, "%")
+            } else "—"
+        )
+        MetricRow("Measurements", data.weights.size.toString())
+        MetricRow("Injections", data.injections.size.toString())
+        MetricRow("Daily notes", data.dayLogs.size.toString())
+
+        if (data.weights.size >= 2) {
+            val first = data.weights.first()
+            val last = data.weights.last()
+            val days = ChronoUnit.DAYS.between(first.date, last.date).toDouble()
+            if (days > 0) {
+                val weekly = (first.weightKg - last.weightKg) * 7.0 / days
+                MetricRow("Average weekly change", oneDecimal(weekly) + " kg/wk lost")
+            }
+        }
     }
 }
 
-private fun formatDose(dose: Double): String =
-    if (dose % 1.0 == 0.0) "${dose.toInt()} mg" else "${oneDecimal(dose)} mg"
+@Composable
+private fun CurrentDoseStats(data: AppData) {
+    val latest = data.latestInjection()
+    SectionCard("Current dose") {
+        if (latest == null) {
+            EmptyState("No injection logged yet.")
+        } else {
+            val run = data.injections.sortedBy { it.date }.asReversed()
+                .takeWhile { it.doseMg == latest.doseMg }
+                .reversed()
+            val runStart = run.firstOrNull()?.date
+            val relevantWeights = if (runStart == null) emptyList()
+            else data.weights.filter { !it.date.isBefore(runStart) }
 
-private fun oneDecimal(value: Double): String = String.format(Locale.getDefault(), "%.1f", value)
-private fun signed(value: Double): String = (if (value > 0) "+" else "") + oneDecimal(value)
-
-private fun doseColor(dose: Double?): Color = when (dose) {
-    5.0 -> Color(0xFF2E7D32)
-    7.5 -> Color(0xFF1976D2)
-    10.0 -> Color(0xFF6A1B9A)
-    12.5 -> Color(0xFFEF6C00)
-    15.0 -> Color(0xFFC62828)
-    else -> Color(0xFF757575)
+            MetricRow("Dose", formatDose(latest.doseMg))
+            MetricRow("Consecutive injections", run.size.toString())
+            MetricRow("Run started", runStart?.format(DisplayDateFormatter) ?: "—")
+            MetricRow(
+                "Change since run started",
+                if (relevantWeights.size >= 2) {
+                    signed(
+                        relevantWeights.last().weightKg - relevantWeights.first().weightKg,
+                        " kg"
+                    )
+                } else "—"
+            )
+        }
+    }
 }
 
-private fun maxDate(a: LocalDate, b: LocalDate) = if (a.isAfter(b)) a else b
-private fun minDate(a: LocalDate, b: LocalDate) = if (a.isBefore(b)) a else b
+@Composable
+private fun DoseBreakdown(data: AppData) {
+    SectionCard(
+        title = "By dose",
+        subtitle = "Weight changes are grouped by timing context, not attributed as cause."
+    ) {
+        SupportedDoses.forEach { dose ->
+            val injections = data.injections.count { it.doseMg == dose }
+            val weights = data.weights.filter { data.doseContextFor(it.date).doseMg == dose }
+            val delta = if (weights.size >= 2) {
+                weights.last().weightKg - weights.first().weightKg
+            } else null
+
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                DoseDot(dose)
+                Text("  " + formatDose(dose), modifier = Modifier.weight(1f))
+                Text(
+                    injections.toString() + " inj." +
+                        (delta?.let { " · " + signed(it, " kg") } ?: ""),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DataManagementCard(
+    data: AppData,
+    viewModel: MainViewModel,
+    notify: (Result<Unit>, String) -> Unit
+) {
+    val context = LocalContext.current
+    var pendingRestore by remember { mutableStateOf<Pair<String, AppData>?>(null) }
+
+    val exportJson = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            val result = runCatching {
+                context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use {
+                    it.write(BackupCodec.toJson(data))
+                } ?: error("Could not open the selected file.")
+            }
+            notify(result.map { Unit }, "Backup exported.")
+        }
+    }
+
+    val exportCsv = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        if (uri != null) {
+            val result = runCatching {
+                context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use {
+                    it.write(BackupCodec.toCsv(data))
+                } ?: error("Could not open the selected file.")
+            }
+            notify(result.map { Unit }, "CSV exported.")
+        }
+    }
+
+    val importJson = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            val result = runCatching {
+                val raw = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use {
+                    it.readText()
+                } ?: error("Could not read the selected file.")
+                raw to BackupCodec.fromJson(raw)
+            }
+            result.onSuccess { pendingRestore = it }
+            result.onFailure {
+                notify(Result.failure(it), "")
+            }
+        }
+    }
+
+    SectionCard(
+        title = "Backup & export",
+        subtitle = "Automatic rotating snapshots are also kept privately inside the app."
+    ) {
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                exportJson.launch(
+                    "mounjaro-log-backup-" + LocalDate.now().toString() + ".json"
+                )
+            }
+        ) {
+            Text("Export full JSON backup")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                exportCsv.launch(
+                    "mounjaro-log-data-" + LocalDate.now().toString() + ".csv"
+                )
+            }
+        ) {
+            Text("Export CSV")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { importJson.launch(arrayOf("application/json", "text/plain")) }
+        ) {
+            Text("Restore JSON backup")
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Restoring replaces the current dataset only after confirmation. A local snapshot of the current data is written first.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+
+    pendingRestore?.let { pair ->
+        val preview = pair.second
+        AlertDialog(
+            onDismissRequest = { pendingRestore = null },
+            title = { Text("Restore this backup?") },
+            text = {
+                Text(
+                    "This backup contains " +
+                        preview.weights.size + " weight measurements, " +
+                        preview.injections.size + " injections, " +
+                        preview.dayLogs.size + " daily notes and " +
+                        preview.milestones.size + " milestones. " +
+                        "It will replace the current dataset."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.restoreBackup(pair.first) {
+                            notify(it, "Backup restored.")
+                            if (it.isSuccess) pendingRestore = null
+                        }
+                    }
+                ) { Text("Restore") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRestore = null }) { Text("Cancel") }
+            }
+        )
+    }
+}
