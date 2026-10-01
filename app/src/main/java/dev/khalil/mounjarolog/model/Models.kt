@@ -49,7 +49,7 @@ fun AppData.doseContextFor(date: LocalDate): DoseContext {
     val injection = injections
         .asSequence()
         .filter { !it.date.isAfter(date) }
-        .maxByOrNull { it.date }
+        .maxWithOrNull(compareBy<Injection> { it.date }.thenBy { it.id })
 
     if (injection == null) return DoseContext(null, null, null)
     val days = ChronoUnit.DAYS.between(injection.date, date).toInt()
@@ -62,6 +62,6 @@ fun AppData.doseContextFor(date: LocalDate): DoseContext {
 
 fun AppData.latestWeight(): WeightMeasurement? = weights.maxByOrNull { it.date }
 fun AppData.startingWeight(): WeightMeasurement? = weights.minByOrNull { it.date }
-fun AppData.latestInjection(): Injection? = injections.maxByOrNull { it.date }
+fun AppData.latestInjection(): Injection? = injections.maxWithOrNull(compareBy<Injection> { it.date }.thenBy { it.id })
 
 val SupportedDoses = listOf(2.5, 5.0, 7.5, 10.0, 12.5, 15.0)
