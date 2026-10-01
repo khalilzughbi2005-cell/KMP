@@ -19,3 +19,10 @@ jobs:
           gradle-version: "8.9"
       - name: Test and assemble debug APK
         run: gradle :app:testDebugUnitTest :app:assembleDebug --stacktrace
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mounjaro-log-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
