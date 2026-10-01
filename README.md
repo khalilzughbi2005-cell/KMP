@@ -2,7 +2,7 @@
 
 A local-first Android app for personally logging weight, Mounjaro injection dates and optional daily notes.
 
-## v1.0 feature set
+## v1.1 feature set
 
 ### Fast logging
 - Quick entry directly on Home
@@ -29,10 +29,19 @@ A local-first Android app for personally logging weight, Mounjaro injection date
 - Ranges: 1 month, 2 months, 3 months, 6 months, 1 year, all time and custom start/end
 - Dose-window background bands fade upward from the x-axis
 - Injection and day-7 boundary posts
-- Dotted diagonal lines across periods without measurements
-- Dotted horizontal continuation after the latest known measurement
+- Dose-window backgrounds are clipped by the next injection so dose fields never overlap
+- Weight lines stay solid unless more than seven days pass with neither a weight measurement nor a dose entry
+- Only the inactive portion after that seven-day threshold is dotted
 - Tap a graph point to inspect its date/value
 - Toggle dose bands, injection posts and milestone lines
+
+### Home-screen widgets
+- Quick Add widget with Weight, Dose and Both shortcuts
+- Graph widget with the recent 60-day weight graph
+- Compact widget combining graph + quick add
+- Dashboard widget combining quick add with total lost, latest weight, current dose, dose-window status, weigh-in count and latest date
+- Widget quick-add shortcuts open directly into focused add dialogs
+- Widgets refresh immediately after data changes
 
 ### Calendar & history
 - Month calendar with markers for weights, injections and daily notes
@@ -72,4 +81,4 @@ A successful GitHub Actions run uploads **mounjaro-log-debug-apk** as an install
 
 ## Development
 
-Active development is on **feature/mounjaro-logger** in draft PR #1 until the v1.0 build and tests are green.
+Version 1.1.0 adds Android home-screen widgets and refined graph continuity/window rules.

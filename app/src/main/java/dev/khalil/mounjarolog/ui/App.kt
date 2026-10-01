@@ -50,6 +50,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -97,13 +98,26 @@ private enum class HistoryFilter(val label: String) {
 }
 
 @Composable
-fun MounjaroLogApp(viewModel: MainViewModel) {
+fun MounjaroLogApp(
+    viewModel: MainViewModel,
+    quickAddMode: String? = null,
+    onQuickAddConsumed: () -> Unit = {}
+) {
     val data by viewModel.data.collectAsStateWithLifecycle()
     val busy by viewModel.busy.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var tab by rememberSaveable { mutableStateOf(AppTab.HOME) }
     var addEntryDate by remember { mutableStateOf<LocalDate?>(null) }
+    var addEntryMode by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(quickAddMode) {
+        if (quickAddMode != null) {
+            addEntryDate = LocalDate.now()
+            addEntryMode = quickAddMode
+            onQuickAddConsumed()
+        }
+    }
 
     fun notify(result: Result<Unit>, success: String) {
         scope.launch {
@@ -170,7 +184,10 @@ fun MounjaroLogApp(viewModel: MainViewModel) {
                 AppTab.CALENDAR -> CalendarScreen(
                     data = data,
                     viewModel = viewModel,
-                    onAddEntry = { addEntryDate = it },
+                    onAddEntry = {
+                        addEntryDate = it
+                        addEntryMode = null
+                    },
                     notify = ::notify
                 )
                 AppTab.HISTORY -> HistoryScreen(
@@ -205,7 +222,11 @@ fun MounjaroLogApp(viewModel: MainViewModel) {
     addEntryDate?.let { initialDate ->
         NewEntryDialog(
             initialDate = initialDate,
-            onDismiss = { addEntryDate = null },
+            initialMode = addEntryMode,
+            onDismiss = {
+                addEntryDate = null
+                addEntryMode = null
+            },
             onSave = { date, weight, dose, site, appetite, sideEffects, note ->
                 viewModel.addEntry(
                     date = date,
@@ -217,7 +238,10 @@ fun MounjaroLogApp(viewModel: MainViewModel) {
                     note = note
                 ) { result ->
                     notify(result, "Entry saved.")
-                    if (result.isSuccess) addEntryDate = null
+                    if (result.isSuccess) {
+                        addEntryDate = null
+                        addEntryMode = null
+                    }
                 }
             }
         )

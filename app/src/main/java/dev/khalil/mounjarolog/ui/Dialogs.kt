@@ -34,6 +34,7 @@ import java.time.LocalDate
 @Composable
 fun NewEntryDialog(
     initialDate: LocalDate,
+    initialMode: String? = null,
     onDismiss: () -> Unit,
     onSave: (
         date: LocalDate,
@@ -54,10 +55,17 @@ fun NewEntryDialog(
     var note by rememberSaveable { mutableStateOf("") }
     var advanced by rememberSaveable { mutableStateOf(false) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
+    val showWeight = initialMode != "dose"
+    val showDose = initialMode != "weight"
+    val dialogTitle = when (initialMode) {
+        "weight" -> "Add weight"
+        "dose" -> "Add dose"
+        else -> "Add entry"
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add entry") },
+        title = { Text(dialogTitle) },
         text = {
             Column(
                 Modifier.fillMaxWidth().heightIn(max = 560.dp),
@@ -67,29 +75,35 @@ fun NewEntryDialog(
                     date = LocalDate.parse(dateText),
                     onDateChange = { dateText = it.toString() }
                 )
-                OutlinedTextField(
-                    value = weightText,
-                    onValueChange = { weightText = it.replace(',', '.') },
-                    label = { Text("Weight (kg) — optional") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                )
-                Text("Dose — optional")
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item {
-                        FilterChip(
-                            selected = dose == null,
-                            onClick = { dose = null },
-                            label = { Text("None") }
-                        )
-                    }
-                    items(SupportedDoses) { item ->
-                        FilterChip(
-                            selected = dose == item,
-                            onClick = { dose = item },
-                            label = { Text(formatDose(item)) }
-                        )
+                if (showWeight) {
+                    OutlinedTextField(
+                        value = weightText,
+                        onValueChange = { weightText = it.replace(',', '.') },
+                        label = { Text("Weight (kg)" + if (showDose) " — optional" else "") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                    )
+                }
+                if (showDose) {
+                    Text("Dose" + if (showWeight) " — optional" else "")
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (showWeight) {
+                            item {
+                                FilterChip(
+                                    selected = dose == null,
+                                    onClick = { dose = null },
+                                    label = { Text("None") }
+                                )
+                            }
+                        }
+                        items(SupportedDoses) { item ->
+                            FilterChip(
+                                selected = dose == item,
+                                onClick = { dose = item },
+                                label = { Text(formatDose(item)) }
+                            )
+                        }
                     }
                 }
 
@@ -98,13 +112,15 @@ fun NewEntryDialog(
                 }
 
                 if (advanced) {
-                    OutlinedTextField(
-                        value = site,
-                        onValueChange = { site = it },
-                        label = { Text("Injection site — optional") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                    if (showDose) {
+                        OutlinedTextField(
+                            value = site,
+                            onValueChange = { site = it },
+                            label = { Text("Injection site — optional") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
                     Text("Appetite — optional self-rating")
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         item {

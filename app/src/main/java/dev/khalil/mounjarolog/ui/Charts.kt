@@ -29,7 +29,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import dev.khalil.mounjarolog.model.AppData
+import dev.khalil.mounjarolog.model.continuitySegments
 import dev.khalil.mounjarolog.model.doseContextFor
+import dev.khalil.mounjarolog.model.effectiveDoseWindows
 import dev.khalil.mounjarolog.model.startingWeight
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -93,7 +95,9 @@ fun ProgressChart(
         .sortedBy { it.date }
     val injections = data.injections
         .filter { !it.date.plusDays(7).isBefore(start) && !it.date.isAfter(end) }
-        .sortedBy { it.date }
+        .sortedWith(compareBy({ it.date }, { it.id }))
+    val doseWindows = effectiveDoseWindows(data.injections)
+        .filter { it.endExclusive.isAfter(start) && !it.start.isAfter(end) }
 
     val startWeight = data.startingWeight()?.weightKg
     val points: List<Pair<LocalDate, Double>> = when (mode) {
@@ -184,12 +188,11 @@ fun ProgressChart(
         }
 
         if (mode != GraphMode.DOSE && options.doseBands) {
-            injections.forEach { injection ->
-                val bandStart = if (injection.date.isBefore(start)) start else injection.date
-                val rawBandEnd = injection.date.plusDays(7)
-                val bandEnd = if (rawBandEnd.isAfter(end)) end else rawBandEnd
-                if (!bandEnd.isBefore(bandStart)) {
-                    val color = doseColor(injection.doseMg)
+            doseWindows.forEach { window ->
+                val bandStart = if (window.start.isBefore(start)) start else window.start
+                val bandEnd = if (window.endExclusive.isAfter(end)) end else window.endExclusive
+                if (bandEnd.isAfter(bandStart)) {
+                    val color = doseColor(window.injection.doseMg)
                     val x1 = x(bandStart)
                     val x2 = x(bandEnd)
                     drawRect(
@@ -209,17 +212,17 @@ fun ProgressChart(
         }
 
         if (mode != GraphMode.DOSE && options.injectionPosts) {
-            injections.forEach { injection ->
-                val color = doseColor(injection.doseMg)
-                if (!injection.date.isBefore(start)) {
+            doseWindows.forEach { window ->
+                val color = doseColor(window.injection.doseMg)
+                if (!window.start.isBefore(start) && !window.start.isAfter(end)) {
                     drawLine(
                         color.copy(alpha = 0.72f),
-                        Offset(x(injection.date), topPx),
-                        Offset(x(injection.date), bottom),
+                        Offset(x(window.start), topPx),
+                        Offset(x(window.start), bottom),
                         2.dp.toPx()
                     )
                 }
-                val endPost = injection.date.plusDays(7)
+                val endPost = window.endExclusive
                 if (!endPost.isBefore(start) && !endPost.isAfter(end)) {
                     drawLine(
                         color.copy(alpha = 0.52f),
@@ -298,14 +301,36 @@ fun ProgressChart(
             points.zipWithNext().forEach { pair ->
                 val a = pair.first
                 val b = pair.second
-                val gapDays = ChronoUnit.DAYS.between(a.first, b.first)
-                drawLine(
-                    primary,
-                    Offset(x(a.first), y(a.second)),
-                    Offset(x(b.first), y(b.second)),
-                    3.dp.toPx(),
-                    pathEffect = if (gapDays > 1) dotted else null
-                )
+                val totalSpanDays = ChronoUnit.DAYS.between(a.first, b.first)
+
+                if (totalSpanDays <= 0) {
+                    drawLine(
+                        primary,
+                        Offset(x(a.first), y(a.second)),
+                        Offset(x(b.first), y(b.second)),
+                        3.dp.toPx()
+                    )
+                } else {
+                    fun valueAt(date: LocalDate): Double {
+                        val elapsed = ChronoUnit.DAYS.between(a.first, date).toDouble()
+                        val fraction = elapsed / totalSpanDays.toDouble()
+                        return a.second + (b.second - a.second) * fraction
+                    }
+
+                    continuitySegments(
+                        start = a.first,
+                        end = b.first,
+                        injectionDates = data.injections.map { it.date }
+                    ).forEach { segment ->
+                        drawLine(
+                            primary,
+                            Offset(x(segment.start), y(valueAt(segment.start))),
+                            Offset(x(segment.end), y(valueAt(segment.end))),
+                            3.dp.toPx(),
+                            pathEffect = if (segment.dotted) dotted else null
+                        )
+                    }
+                }
             }
 
             if (
@@ -313,13 +338,19 @@ fun ProgressChart(
                 points.last().first.isBefore(end)
             ) {
                 val last = points.last()
-                drawLine(
-                    primary.copy(alpha = 0.72f),
-                    Offset(x(last.first), y(last.second)),
-                    Offset(right, y(last.second)),
-                    2.dp.toPx(),
-                    pathEffect = dotted
-                )
+                continuitySegments(
+                    start = last.first,
+                    end = end,
+                    injectionDates = data.injections.map { it.date }
+                ).forEach { segment ->
+                    drawLine(
+                        primary.copy(alpha = 0.72f),
+                        Offset(x(segment.start), y(last.second)),
+                        Offset(x(segment.end), y(last.second)),
+                        2.dp.toPx(),
+                        pathEffect = if (segment.dotted) dotted else null
+                    )
+                }
             }
         }
 

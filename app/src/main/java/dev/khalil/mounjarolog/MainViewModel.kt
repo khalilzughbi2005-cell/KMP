@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dev.khalil.mounjarolog.data.BackupCodec
 import dev.khalil.mounjarolog.data.LoggerDatabase
 import dev.khalil.mounjarolog.model.AppData
+import dev.khalil.mounjarolog.widget.HomeWidgetUpdater
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -133,7 +134,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     database.loadAll()
                 }
             }
-            result.onSuccess { _data.value = it }
+            result.onSuccess {
+                _data.value = it
+                HomeWidgetUpdater.updateAll(getApplication())
+            }
             _busy.value = false
             onDone(result.map { Unit })
         }
@@ -151,7 +155,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     database.loadAll()
                 }
             }
-            result.onSuccess { _data.value = it }
+            result.onSuccess {
+                _data.value = it
+                HomeWidgetUpdater.updateAll(getApplication())
+            }
             _busy.value = false
             onDone(result.map { Unit })
         }

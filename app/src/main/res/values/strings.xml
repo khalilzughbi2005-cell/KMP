@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Mounjaro Log</string>
+    <string name="widget_quick_description">Quickly add weight or dose entries</string>
+    <string name="widget_graph_description">Recent weight graph with dose context</string>
+    <string name="widget_compact_description">Compact graph and quick add</string>
+    <string name="widget_dashboard_description">Quick add with weight and dose summary</string>
 </resources>
