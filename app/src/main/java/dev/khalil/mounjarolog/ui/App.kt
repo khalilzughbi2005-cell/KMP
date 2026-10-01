@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -418,7 +419,10 @@ private fun ProgressChart(
     val yMin = if (rawMin == rawMax) rawMin - 1.0 else rawMin - pad
     val yMax = if (rawMin == rawMax) rawMax + 1.0 else rawMax + pad
 
-    Canvas(modifier = modifier.background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))) {
+    val chartSurface = MaterialTheme.colorScheme.surface
+    val lineColor = MaterialTheme.colorScheme.primary
+
+    Canvas(modifier = modifier.background(chartSurface, RoundedCornerShape(12.dp))) {
         val left = 8.dp.toPx()
         val right = size.width - 8.dp.toPx()
         val top = 12.dp.toPx()
@@ -452,7 +456,7 @@ private fun ProgressChart(
                         topLeft = Offset(x1, top),
                         size = androidx.compose.ui.geometry.Size((x2 - x1).coerceAtLeast(2f), chartHeight)
                     )
-                    drawLine(color.copy(alpha = 0.65f), Offset(x(injection.date.coerceAtLeast(start)), top), Offset(x(injection.date.coerceAtLeast(start)), bottom), 2.dp.toPx())
+                    drawLine(color.copy(alpha = 0.65f), Offset(x(maxDate(injection.date, start)), top), Offset(x(maxDate(injection.date, start)), bottom), 2.dp.toPx())
                     val endPost = injection.date.plusDays(7)
                     if (!endPost.isAfter(end)) {
                         drawLine(color.copy(alpha = 0.55f), Offset(x(endPost), top), Offset(x(endPost), bottom), 2.dp.toPx())
@@ -466,7 +470,6 @@ private fun ProgressChart(
             drawLine(Color.Gray.copy(alpha = 0.16f), Offset(left, yy), Offset(right, yy), 1.dp.toPx())
         }
 
-        val lineColor = MaterialTheme.colorScheme.primary
         val dotted = PathEffect.dashPathEffect(floatArrayOf(10.dp.toPx(), 8.dp.toPx()))
 
         points.zipWithNext().forEach { (a, b) ->
