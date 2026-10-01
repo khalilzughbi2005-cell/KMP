@@ -26,19 +26,19 @@ jobs:
         id: signing-cache
         uses: actions/cache@v4
         with:
-          path: ~/.android
-          key: mounjaro-log-signing-keystore-v2
+          path: .signing
+          key: mounjaro-log-signing-keystore-v3
 
       - name: Prepare and verify signing key
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$HOME/.android"
+          mkdir -p .signing
 
-          if [ ! -f "$HOME/.android/debug.keystore" ]; then
-            echo "No persisted signing key found; creating the canonical v2 key."
+          if [ ! -f ".signing/mounjaro.keystore" ]; then
+            echo "No persisted signing key found; creating the canonical v3 key."
             keytool -genkeypair \
-              -keystore "$HOME/.android/debug.keystore" \
+              -keystore ".signing/mounjaro.keystore" \
               -storepass android \
               -alias androiddebugkey \
               -keypass android \
@@ -50,7 +50,7 @@ jobs:
 
           FINGERPRINT="$(
             keytool -list -v \
-              -keystore "$HOME/.android/debug.keystore" \
+              -keystore ".signing/mounjaro.keystore" \
               -storepass android \
               -alias androiddebugkey |
             sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' |
