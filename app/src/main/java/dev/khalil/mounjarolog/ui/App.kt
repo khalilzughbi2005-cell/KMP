@@ -1370,14 +1370,36 @@ private fun MoreScreen(
 
 @Composable
 private fun OverviewStats(data: AppData) {
+    val orderedWeights = data.weights.sortedBy { it.date }
+    val orderedInjections = data.injections.sortedBy { it.date }
     val start = data.startingWeight()
     val latest = data.latestWeight()
     val lowest = data.weights.minByOrNull { it.weightKg }
+    val highest = data.weights.maxByOrNull { it.weightKg }
+
+    fun averageInterval(dates: List<LocalDate>): Double? {
+        if (dates.size < 2) return null
+        val intervals = dates.zipWithNext().map {
+            ChronoUnit.DAYS.between(it.first, it.second).toDouble()
+        }.filter { it >= 0.0 }
+        return if (intervals.isEmpty()) null else intervals.average()
+    }
+
+    fun trend(days: Long): Double? {
+        val endWeight = latest ?: return null
+        val targetDate = endWeight.date.minusDays(days)
+        val reference = orderedWeights
+            .filter { !it.date.isAfter(targetDate) }
+            .maxByOrNull { it.date }
+            ?: return null
+        return endWeight.weightKg - reference.weightKg
+    }
 
     SectionCard("Overview") {
         MetricRow("Starting weight", start?.let { oneDecimal(it.weightKg) + " kg" } ?: "—")
         MetricRow("Latest weight", latest?.let { oneDecimal(it.weightKg) + " kg" } ?: "—")
         MetricRow("Lowest recorded", lowest?.let { oneDecimal(it.weightKg) + " kg" } ?: "—")
+        MetricRow("Highest recorded", highest?.let { oneDecimal(it.weightKg) + " kg" } ?: "—")
         MetricRow(
             "Total change",
             if (start != null && latest != null) {
@@ -1390,17 +1412,27 @@ private fun OverviewStats(data: AppData) {
                 signed((latest.weightKg - start.weightKg) / start.weightKg * 100.0, "%")
             } else "—"
         )
+        MetricRow("7-day trend", trend(7)?.let { signed(it, " kg") } ?: "—")
+        MetricRow("30-day trend", trend(30)?.let { signed(it, " kg") } ?: "—")
         MetricRow("Measurements", data.weights.size.toString())
         MetricRow("Injections", data.injections.size.toString())
         MetricRow("Daily notes", data.dayLogs.size.toString())
+        MetricRow(
+            "Average weigh-in interval",
+            averageInterval(orderedWeights.map { it.date })?.let { oneDecimal(it) + " days" } ?: "—"
+        )
+        MetricRow(
+            "Average injection interval",
+            averageInterval(orderedInjections.map { it.date })?.let { oneDecimal(it) + " days" } ?: "—"
+        )
 
-        if (data.weights.size >= 2) {
-            val first = data.weights.first()
-            val last = data.weights.last()
+        if (orderedWeights.size >= 2) {
+            val first = orderedWeights.first()
+            val last = orderedWeights.last()
             val days = ChronoUnit.DAYS.between(first.date, last.date).toDouble()
             if (days > 0) {
                 val weekly = (first.weightKg - last.weightKg) * 7.0 / days
-                MetricRow("Average weekly change", oneDecimal(weekly) + " kg/wk lost")
+                MetricRow("Average weekly loss", oneDecimal(weekly) + " kg/wk")
             }
         }
     }
@@ -1419,10 +1451,14 @@ private fun CurrentDoseStats(data: AppData) {
             val runStart = run.firstOrNull()?.date
             val relevantWeights = if (runStart == null) emptyList()
             else data.weights.filter { !it.date.isBefore(runStart) }
+            val runDays = runStart?.let {
+                (ChronoUnit.DAYS.between(it, LocalDate.now()).coerceAtLeast(0) + 1).toString()
+            }
 
             MetricRow("Dose", formatDose(latest.doseMg))
             MetricRow("Consecutive injections", run.size.toString())
             MetricRow("Run started", runStart?.format(DisplayDateFormatter) ?: "—")
+            MetricRow("Days in current run", runDays ?: "—")
             MetricRow(
                 "Change since run started",
                 if (relevantWeights.size >= 2) {
