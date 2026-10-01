@@ -14,9 +14,9 @@ class ModelsTest {
             injections = listOf(Injection(1, injectionDate, 5.0))
         )
 
-        assertEquals(5.0, data.doseContextFor(injectionDate).doseMg, 0.0)
+        assertEquals(5.0, data.doseContextFor(injectionDate).doseMg!!, 0.0)
         assertEquals(1, data.doseContextFor(injectionDate).dayInWindow)
-        assertEquals(5.0, data.doseContextFor(injectionDate.plusDays(6)).doseMg, 0.0)
+        assertEquals(5.0, data.doseContextFor(injectionDate.plusDays(6)).doseMg!!, 0.0)
         assertEquals(7, data.doseContextFor(injectionDate.plusDays(6)).dayInWindow)
         assertNull(data.doseContextFor(injectionDate.plusDays(7)).doseMg)
         assertNull(data.doseContextFor(injectionDate.plusDays(7)).dayInWindow)
