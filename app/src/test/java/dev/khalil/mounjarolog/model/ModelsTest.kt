@@ -86,4 +86,18 @@ class ModelsTest {
         )
     }
 
+
+    @Test
+    fun laterSavedInjectionWinsOnTheSameDate() {
+        val data = AppData(
+            injections = listOf(
+                Injection(1, injectionDate, 5.0),
+                Injection(2, injectionDate, 7.5)
+            )
+        )
+
+        assertEquals(7.5, data.doseContextFor(injectionDate).doseMg!!, 0.0)
+        assertEquals(2L, data.latestInjection()!!.id)
+    }
+
 }
