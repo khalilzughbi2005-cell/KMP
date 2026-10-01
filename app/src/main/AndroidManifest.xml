@@ -20,7 +20,7 @@
 
         <receiver
             android:name=".widget.QuickAddWidgetProvider"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -31,7 +31,7 @@
 
         <receiver
             android:name=".widget.GraphWidgetProvider"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -42,7 +42,7 @@
 
         <receiver
             android:name=".widget.CompactWidgetProvider"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -53,7 +53,7 @@
 
         <receiver
             android:name=".widget.DashboardWidgetProvider"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
