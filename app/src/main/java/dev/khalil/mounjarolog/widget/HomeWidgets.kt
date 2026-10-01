@@ -16,6 +16,7 @@ import dev.khalil.mounjarolog.R
 import dev.khalil.mounjarolog.data.LoggerDatabase
 import dev.khalil.mounjarolog.model.AppData
 import dev.khalil.mounjarolog.model.continuitySegments
+import dev.khalil.mounjarolog.model.doseContextFor
 import dev.khalil.mounjarolog.model.effectiveDoseWindows
 import dev.khalil.mounjarolog.model.latestInjection
 import dev.khalil.mounjarolog.model.latestWeight
@@ -141,7 +142,7 @@ object HomeWidgetUpdater {
         val start = data.startingWeight()
         val injection = data.latestInjection()
         val totalLost = if (latest != null && start != null) start.weightKg - latest.weightKg else null
-        val activeContext = latest?.date?.let { data.doseContextFor(it) }
+        val activeContext = data.doseContextFor(LocalDate.now())
 
         ids.forEach { id ->
             val views = RemoteViews(context.packageName, R.layout.widget_dashboard)
