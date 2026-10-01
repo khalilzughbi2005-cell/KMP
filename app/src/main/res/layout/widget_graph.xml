@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Weight · 60 days"
+            android:textStyle="bold"
+            android:textSize="15sp"
+            android:textColor="#17352B"/>
+        <TextView
+            android:id="@+id/widget_latest_weight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No weight yet"
+            android:textStyle="bold"
+            android:textSize="13sp"
+            android:textColor="#176B52"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_latest_dose"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No dose yet"
+        android:textSize="11sp"
+        android:textColor="#60766D"/>
+
+    <ImageView
+        android:id="@+id/widget_graph_image"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:scaleType="fitXY"
+        android:contentDescription="Weight graph"/>
+</LinearLayout>
