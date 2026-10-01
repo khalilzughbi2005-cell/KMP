@@ -9,8 +9,6 @@ import dev.khalil.mounjarolog.model.DayLog
 import dev.khalil.mounjarolog.model.Injection
 import dev.khalil.mounjarolog.model.Milestone
 import dev.khalil.mounjarolog.model.WeightMeasurement
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.time.LocalDate
 
@@ -61,7 +59,7 @@ class LoggerDatabase(private val context: Context) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Future schema changes go here as additive migrations. Never drop user data.
+        // Add future schema changes as migrations. Never drop the user's tables here.
     }
 
     fun loadAll(): AppData = readableDatabase.let { db ->
@@ -91,7 +89,7 @@ class LoggerDatabase(private val context: Context) :
         }
 
         val dayLogs = mutableListOf<DayLog>()
-        db.query("day_logs", null, null, null, null, null, "date ASC").use { c ->
+        db.query("day_logs", null, null, null, null, null, "date ASC, id ASC").use { c ->
             while (c.moveToNext()) {
                 val appetiteIndex = c.getColumnIndexOrThrow("appetite")
                 dayLogs += DayLog(
@@ -105,7 +103,7 @@ class LoggerDatabase(private val context: Context) :
         }
 
         val milestones = mutableListOf<Milestone>()
-        db.query("milestones", null, null, null, null, null, "target_kg DESC").use { c ->
+        db.query("milestones", null, null, null, null, null, "target_kg DESC, id ASC").use { c ->
             while (c.moveToNext()) {
                 milestones += Milestone(
                     id = c.getLong(c.getColumnIndexOrThrow("id")),
@@ -118,27 +116,73 @@ class LoggerDatabase(private val context: Context) :
         AppData(weights, injections, dayLogs, milestones)
     }
 
-    fun addEntry(date: LocalDate, weightKg: Double?, doseMg: Double?, note: String) {
+    fun addEntry(
+        date: LocalDate,
+        weightKg: Double?,
+        doseMg: Double?,
+        injectionSite: String,
+        appetite: Int?,
+        sideEffects: String,
+        note: String
+    ) {
         val db = writableDatabase
         db.beginTransaction()
         try {
             weightKg?.let {
-                db.insertOrThrow("weights", null, ContentValues().apply {
-                    put("date", date.toString())
-                    put("weight_kg", it)
-                    put("note", note)
-                })
+                db.insertOrThrow("weights", null, weightValues(date, it, note))
             }
             doseMg?.let {
-                db.insertOrThrow("injections", null, ContentValues().apply {
-                    put("date", date.toString())
-                    put("dose_mg", it)
-                    put("note", note)
-                })
+                db.insertOrThrow("injections", null, injectionValues(date, it, injectionSite, note))
+            }
+            if (appetite != null || sideEffects.isNotBlank()) {
+                upsertDayLogInTransaction(db, date, appetite, sideEffects, note)
             }
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
+        }
+        writeSnapshot()
+    }
+
+    fun updateWeight(id: Long, date: LocalDate, weightKg: Double, note: String) {
+        require(id > 0)
+        writableDatabase.update(
+            "weights",
+            weightValues(date, weightKg, note),
+            "id=?",
+            arrayOf(id.toString())
+        )
+        writeSnapshot()
+    }
+
+    fun updateInjection(
+        id: Long,
+        date: LocalDate,
+        doseMg: Double,
+        injectionSite: String,
+        note: String
+    ) {
+        require(id > 0)
+        writableDatabase.update(
+            "injections",
+            injectionValues(date, doseMg, injectionSite, note),
+            "id=?",
+            arrayOf(id.toString())
+        )
+        writeSnapshot()
+    }
+
+    fun upsertDayLog(
+        date: LocalDate,
+        appetite: Int?,
+        sideEffects: String,
+        note: String
+    ) {
+        val db = writableDatabase
+        if (appetite == null && sideEffects.isBlank() && note.isBlank()) {
+            db.delete("day_logs", "date=?", arrayOf(date.toString()))
+        } else {
+            upsertDayLogInTransaction(db, date, appetite, sideEffects, note)
         }
         writeSnapshot()
     }
@@ -153,65 +197,124 @@ class LoggerDatabase(private val context: Context) :
         writeSnapshot()
     }
 
-    fun addMilestone(targetKg: Double, label: String = "") {
-        writableDatabase.insertOrThrow("milestones", null, ContentValues().apply {
-            put("target_kg", targetKg)
-            put("label", label)
-        })
+    fun deleteDayLog(id: Long) {
+        writableDatabase.delete("day_logs", "id=?", arrayOf(id.toString()))
         writeSnapshot()
     }
 
-    private fun writeSnapshot() {
-        val data = loadAll()
-        val root = JSONObject()
-        root.put("schemaVersion", DB_VERSION)
-        root.put("weights", JSONArray().apply {
-            data.weights.forEach {
-                put(JSONObject().apply {
-                    put("id", it.id)
-                    put("date", it.date.toString())
-                    put("weightKg", it.weightKg)
-                    put("note", it.note)
-                })
-            }
-        })
-        root.put("injections", JSONArray().apply {
-            data.injections.forEach {
-                put(JSONObject().apply {
-                    put("id", it.id)
-                    put("date", it.date.toString())
-                    put("doseMg", it.doseMg)
-                    put("injectionSite", it.injectionSite)
-                    put("note", it.note)
-                })
-            }
-        })
-        root.put("dayLogs", JSONArray().apply {
-            data.dayLogs.forEach {
-                put(JSONObject().apply {
-                    put("id", it.id)
-                    put("date", it.date.toString())
-                    if (it.appetite != null) put("appetite", it.appetite)
-                    put("sideEffects", it.sideEffects)
-                    put("note", it.note)
-                })
-            }
-        })
-        root.put("milestones", JSONArray().apply {
-            data.milestones.forEach {
-                put(JSONObject().apply {
-                    put("id", it.id)
-                    put("targetKg", it.targetKg)
-                    put("label", it.label)
-                })
-            }
-        })
+    fun addMilestone(targetKg: Double, label: String = "") {
+        writableDatabase.insertOrThrow("milestones", null, milestoneValues(targetKg, label))
+        writeSnapshot()
+    }
 
+    fun updateMilestone(id: Long, targetKg: Double, label: String) {
+        writableDatabase.update(
+            "milestones",
+            milestoneValues(targetKg, label),
+            "id=?",
+            arrayOf(id.toString())
+        )
+        writeSnapshot()
+    }
+
+    fun deleteMilestone(id: Long) {
+        writableDatabase.delete("milestones", "id=?", arrayOf(id.toString()))
+        writeSnapshot()
+    }
+
+    fun restoreData(data: AppData) {
+        // Preserve a recoverable copy of the current state before replacing anything.
+        writeSnapshot()
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete("weights", null, null)
+            db.delete("injections", null, null)
+            db.delete("day_logs", null, null)
+            db.delete("milestones", null, null)
+
+            data.weights.forEach {
+                db.insertOrThrow("weights", null, weightValues(it.date, it.weightKg, it.note).apply {
+                    if (it.id > 0) put("id", it.id)
+                })
+            }
+            data.injections.forEach {
+                db.insertOrThrow("injections", null, injectionValues(it.date, it.doseMg, it.injectionSite, it.note).apply {
+                    if (it.id > 0) put("id", it.id)
+                })
+            }
+            data.dayLogs.forEach {
+                db.insertOrThrow("day_logs", null, dayLogValues(it.date, it.appetite, it.sideEffects, it.note).apply {
+                    if (it.id > 0) put("id", it.id)
+                })
+            }
+            data.milestones.forEach {
+                db.insertOrThrow("milestones", null, milestoneValues(it.targetKg, it.label).apply {
+                    if (it.id > 0) put("id", it.id)
+                })
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        writeSnapshot()
+    }
+
+    private fun upsertDayLogInTransaction(
+        db: SQLiteDatabase,
+        date: LocalDate,
+        appetite: Int?,
+        sideEffects: String,
+        note: String
+    ) {
+        val values = dayLogValues(date, appetite, sideEffects, note)
+        val updated = db.update("day_logs", values, "date=?", arrayOf(date.toString()))
+        if (updated == 0) db.insertOrThrow("day_logs", null, values)
+    }
+
+    private fun weightValues(date: LocalDate, weightKg: Double, note: String) =
+        ContentValues().apply {
+            put("date", date.toString())
+            put("weight_kg", weightKg)
+            put("note", note.trim())
+        }
+
+    private fun injectionValues(
+        date: LocalDate,
+        doseMg: Double,
+        injectionSite: String,
+        note: String
+    ) = ContentValues().apply {
+        put("date", date.toString())
+        put("dose_mg", doseMg)
+        put("injection_site", injectionSite.trim())
+        put("note", note.trim())
+    }
+
+    private fun dayLogValues(
+        date: LocalDate,
+        appetite: Int?,
+        sideEffects: String,
+        note: String
+    ) = ContentValues().apply {
+        put("date", date.toString())
+        if (appetite == null) putNull("appetite") else put("appetite", appetite.coerceIn(1, 5))
+        put("side_effects", sideEffects.trim())
+        put("note", note.trim())
+    }
+
+    private fun milestoneValues(targetKg: Double, label: String) =
+        ContentValues().apply {
+            put("target_kg", targetKg)
+            put("label", label.trim())
+        }
+
+    private fun writeSnapshot() {
         val dir = File(context.filesDir, "snapshots").apply { mkdirs() }
         val next = (dir.listFiles()?.mapNotNull {
             it.nameWithoutExtension.removePrefix("snapshot_").toIntOrNull()
         }?.maxOrNull() ?: 0) + 1
-        File(dir, "snapshot_${next}.json").writeText(root.toString(2))
+        File(dir, "snapshot_\${next}.json").writeText(BackupCodec.toJson(loadAll()))
 
         dir.listFiles()
             ?.sortedByDescending { it.lastModified() }
