@@ -134,7 +134,7 @@ class LoggerDatabase(private val context: Context) :
             doseMg?.let {
                 db.insertOrThrow("injections", null, injectionValues(date, it, injectionSite, note))
             }
-            if (appetite != null || sideEffects.isNotBlank()) {
+            if (appetite != null || sideEffects.isNotBlank() || (weightKg == null && doseMg == null && note.isNotBlank())) {
                 upsertDayLogInTransaction(db, date, appetite, sideEffects, note)
             }
             db.setTransactionSuccessful()
