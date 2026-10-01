@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quick add"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:textColor="#17352B"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="4dp">
+        <TextView
+            android:id="@+id/widget_latest_weight"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="No weight yet"
+            android:textSize="13sp"
+            android:textColor="#486158"/>
+        <TextView
+            android:id="@+id/widget_latest_dose"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No dose yet"
+            android:textSize="13sp"
+            android:textColor="#486158"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp">
+        <TextView
+            android:id="@+id/widget_add_weight"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:background="@drawable/widget_button_secondary"
+            android:text="Weight"
+            android:textStyle="bold"
+            android:textColor="#174F3D"/>
+        <TextView
+            android:id="@+id/widget_add_dose"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:gravity="center"
+            android:background="@drawable/widget_button_secondary"
+            android:text="Dose"
+            android:textStyle="bold"
+            android:textColor="#174F3D"/>
+        <TextView
+            android:id="@+id/widget_add_both"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:gravity="center"
+            android:background="@drawable/widget_button"
+            android:text="Both"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"/>
+    </LinearLayout>
+</LinearLayout>
