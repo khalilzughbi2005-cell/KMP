@@ -10,6 +10,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.os.Bundle
 import android.widget.RemoteViews
 import dev.khalil.mounjarolog.MainActivity
 import dev.khalil.mounjarolog.R
@@ -26,6 +27,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 object WidgetActions {
     const val EXTRA_QUICK_ADD_MODE = "widget_quick_add_mode"
@@ -44,17 +46,44 @@ class GraphWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         HomeWidgetUpdater.updateGraph(context, manager, ids)
     }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        manager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        HomeWidgetUpdater.updateGraph(context, manager, intArrayOf(appWidgetId))
+    }
 }
 
 class CompactWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         HomeWidgetUpdater.updateCompact(context, manager, ids)
     }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        manager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        HomeWidgetUpdater.updateCompact(context, manager, intArrayOf(appWidgetId))
+    }
 }
 
 class DashboardWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         HomeWidgetUpdater.updateDashboard(context, manager, ids)
+    }
+
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        manager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: Bundle
+    ) {
+        HomeWidgetUpdater.updateDashboard(context, manager, intArrayOf(appWidgetId))
     }
 }
 
@@ -108,10 +137,35 @@ object HomeWidgetUpdater {
     fun updateGraph(context: Context, manager: AppWidgetManager, ids: IntArray) {
         if (ids.isEmpty()) return
         val data = loadData(context)
-        val bitmap = WidgetGraphRenderer.render(data, width = 760, height = 280)
+        val latest = data.latestWeight()
+        val startWeight = data.startingWeight()
+        val graphWindow = graphWindow(data)
+        val formatter = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+
         ids.forEach { id ->
+            val size = widgetSize(manager, id, defaultWidthDp = 300, defaultHeightDp = 140)
+            val bitmap = WidgetGraphRenderer.render(
+                data = data,
+                width = px(context, size.widthDp).coerceIn(420, 1400),
+                height = px(context, (size.heightDp - 72).coerceAtLeast(52)).coerceIn(100, 700)
+            )
             val views = RemoteViews(context.packageName, R.layout.widget_graph)
-            bindHeaderStats(views, data)
+            views.setTextViewText(
+                R.id.widget_latest_weight,
+                latest?.let { oneDecimal(it.weightKg) + " kg" } ?: "No weight yet"
+            )
+            views.setTextViewText(
+                R.id.widget_latest_dose,
+                data.latestInjection()?.let { doseText(it.doseMg) } ?: "No dose yet"
+            )
+            views.setTextViewText(
+                R.id.widget_weight_change,
+                if (latest != null && startWeight != null) {
+                    signed(latest.weightKg - startWeight.weightKg) + " kg total"
+                } else "—"
+            )
+            views.setTextViewText(R.id.widget_graph_start, graphWindow.first.format(formatter))
+            views.setTextViewText(R.id.widget_graph_end, graphWindow.second.format(formatter))
             views.setImageViewBitmap(R.id.widget_graph_image, bitmap)
             views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context, 4000 + id))
             manager.updateAppWidget(id, views)
@@ -121,8 +175,13 @@ object HomeWidgetUpdater {
     fun updateCompact(context: Context, manager: AppWidgetManager, ids: IntArray) {
         if (ids.isEmpty()) return
         val data = loadData(context)
-        val bitmap = WidgetGraphRenderer.render(data, width = 700, height = 190)
         ids.forEach { id ->
+            val size = widgetSize(manager, id, defaultWidthDp = 300, defaultHeightDp = 130)
+            val bitmap = WidgetGraphRenderer.render(
+                data = data,
+                width = px(context, size.widthDp).coerceIn(420, 1400),
+                height = px(context, (size.heightDp - 48).coerceAtLeast(44)).coerceIn(90, 600)
+            )
             val views = RemoteViews(context.packageName, R.layout.widget_compact)
             bindHeaderStats(views, data)
             views.setImageViewBitmap(R.id.widget_graph_image, bitmap)
@@ -143,6 +202,7 @@ object HomeWidgetUpdater {
         val injection = data.latestInjection()
         val totalLost = if (latest != null && start != null) start.weightKg - latest.weightKg else null
         val activeContext = data.doseContextFor(LocalDate.now())
+        val change30 = changeOverDays(data, 30)
 
         ids.forEach { id ->
             val views = RemoteViews(context.packageName, R.layout.widget_dashboard)
@@ -161,15 +221,21 @@ object HomeWidgetUpdater {
             views.setTextViewText(
                 R.id.widget_dose_window,
                 when {
-                    activeContext?.doseMg != null -> "Day " + activeContext.dayInWindow + " / 7"
+                    activeContext.doseMg != null -> "Day " + activeContext.dayInWindow + "/7"
                     injection != null -> "Outside window"
-                    else -> "—"
+                    else -> "No dose yet"
                 }
+            )
+            views.setTextViewText(
+                R.id.widget_30d_change,
+                change30?.let { signed(it) + " kg" } ?: "—"
             )
             views.setTextViewText(R.id.widget_entry_count, data.weights.size.toString())
             views.setTextViewText(
                 R.id.widget_last_date,
-                latest?.date?.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())) ?: "—"
+                latest?.date?.let {
+                    "Last " + it.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))
+                } ?: "No weigh-in"
             )
             views.setOnClickPendingIntent(
                 R.id.widget_add_weight,
@@ -183,7 +249,6 @@ object HomeWidgetUpdater {
                 R.id.widget_add_both,
                 quickAddIntent(context, 9000 + id, WidgetActions.MODE_BOTH)
             )
-            views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context, 10000 + id))
             manager.updateAppWidget(id, views)
         }
     }
@@ -200,6 +265,45 @@ object HomeWidgetUpdater {
             injection?.let { doseText(it.doseMg) } ?: "No dose yet"
         )
     }
+
+    private fun changeOverDays(data: AppData, days: Long): Double? {
+        val latest = data.latestWeight() ?: return null
+        val target = latest.date.minusDays(days)
+        val reference = data.weights
+            .filter { !it.date.isAfter(target) }
+            .maxByOrNull { it.date }
+            ?: return null
+        return latest.weightKg - reference.weightKg
+    }
+
+    private fun graphWindow(data: AppData): Pair<LocalDate, LocalDate> {
+        val end = LocalDate.now()
+        val earliest = data.weights.minByOrNull { it.date }?.date ?: end
+        val sixtyDays = end.minusDays(60)
+        val start = if (earliest.isAfter(sixtyDays)) earliest else sixtyDays
+        return start to end
+    }
+
+    private fun widgetSize(
+        manager: AppWidgetManager,
+        id: Int,
+        defaultWidthDp: Int,
+        defaultHeightDp: Int
+    ): WidgetSize {
+        val options = manager.getAppWidgetOptions(id)
+        val width = options.getInt(
+            AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,
+            defaultWidthDp
+        ).coerceAtLeast(120)
+        val height = options.getInt(
+            AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,
+            defaultHeightDp
+        ).coerceAtLeast(72)
+        return WidgetSize(width, height)
+    }
+
+    private fun px(context: Context, dp: Int): Int =
+        (dp * context.resources.displayMetrics.density).roundToInt()
 
     private fun loadData(context: Context): AppData {
         val database = LoggerDatabase(context.applicationContext)
@@ -238,10 +342,20 @@ object HomeWidgetUpdater {
     private fun oneDecimal(value: Double): String =
         String.format(Locale.getDefault(), "%.1f", value)
 
+    private fun signed(value: Double): String {
+        val formatted = oneDecimal(value)
+        return if (value > 0) "+$formatted" else formatted
+    }
+
     private fun doseText(value: Double): String =
         if (value % 1.0 == 0.0) value.toInt().toString() + " mg"
         else oneDecimal(value) + " mg"
 }
+
+private data class WidgetSize(
+    val widthDp: Int,
+    val heightDp: Int
+)
 
 private object WidgetGraphRenderer {
     fun render(data: AppData, width: Int, height: Int): Bitmap {
@@ -251,7 +365,7 @@ private object WidgetGraphRenderer {
 
         val weights = data.weights.sortedBy { it.date }
         if (weights.isEmpty()) {
-            drawCenteredText(canvas, width, height, "Add a weight to start the graph")
+            drawCenteredText(canvas, width, height, "Add a weight to start")
             return bitmap
         }
 
@@ -262,14 +376,15 @@ private object WidgetGraphRenderer {
         val visible = weights.filter { !it.date.isBefore(start) && !it.date.isAfter(end) }
 
         if (visible.isEmpty()) {
-            drawCenteredText(canvas, width, height, "No recent weights")
+            drawCenteredText(canvas, width, height, "No weights in the last 60 days")
             return bitmap
         }
 
-        val left = 18f
-        val right = width - 18f
-        val top = 12f
-        val bottom = height - 18f
+        val edge = max(10f, width * 0.018f)
+        val top = max(8f, height * 0.06f)
+        val bottom = height - max(8f, height * 0.08f)
+        val left = edge
+        val right = width - edge
         val chartWidth = right - left
         val chartHeight = bottom - top
         val totalDays = max(1L, ChronoUnit.DAYS.between(start, end)).toFloat()
@@ -290,6 +405,13 @@ private object WidgetGraphRenderer {
             return bottom - f * chartHeight
         }
 
+        val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(34, 72, 97, 88)
+            strokeWidth = max(1f, height * 0.008f)
+        }
+        canvas.drawLine(left, top + chartHeight * 0.5f, right, top + chartHeight * 0.5f, gridPaint)
+        canvas.drawLine(left, bottom, right, bottom, gridPaint)
+
         val bandPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         effectiveDoseWindows(data.injections)
             .filter { it.endExclusive.isAfter(start) && !it.start.isAfter(end) }
@@ -297,19 +419,28 @@ private object WidgetGraphRenderer {
                 val s = if (window.start.isBefore(start)) start else window.start
                 val e = if (window.endExclusive.isAfter(end)) end else window.endExclusive
                 if (e.isAfter(s)) {
-                    bandPaint.color = doseColor(window.injection.doseMg, alpha = 42)
-                    canvas.drawRect(x(s), top, x(e), bottom, bandPaint)
+                    bandPaint.color = doseColor(window.injection.doseMg, alpha = 36)
+                    canvas.drawRoundRect(
+                        x(s), top, x(e), bottom,
+                        max(3f, height * 0.025f),
+                        max(3f, height * 0.025f),
+                        bandPaint
+                    )
                 }
             }
 
         val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.rgb(23, 107, 82)
-            strokeWidth = 5f
+            strokeWidth = max(4f, height * 0.035f)
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
         }
         val dottedPaint = Paint(linePaint).apply {
-            pathEffect = android.graphics.DashPathEffect(floatArrayOf(13f, 10f), 0f)
+            pathEffect = android.graphics.DashPathEffect(
+                floatArrayOf(max(10f, height * 0.08f), max(8f, height * 0.06f)),
+                0f
+            )
         }
 
         visible.zipWithNext().forEach { pair ->
@@ -339,10 +470,28 @@ private object WidgetGraphRenderer {
             }
         }
 
+        val last = visible.last()
+        if (last.date.isBefore(end)) {
+            continuitySegments(
+                last.date,
+                end,
+                data.injections.map { it.date }
+            ).forEach { segment ->
+                canvas.drawLine(
+                    x(segment.start),
+                    y(last.weightKg),
+                    x(segment.end),
+                    y(last.weightKg),
+                    if (segment.dotted) dottedPaint else linePaint
+                )
+            }
+        }
+
         val pointPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val pointRadius = max(5f, height * 0.045f)
         visible.forEach { weight ->
             pointPaint.color = doseColor(data.doseContextFor(weight.date).doseMg)
-            canvas.drawCircle(x(weight.date), y(weight.weightKg), 7f, pointPaint)
+            canvas.drawCircle(x(weight.date), y(weight.weightKg), pointRadius, pointPaint)
         }
 
         return bitmap
@@ -351,7 +500,7 @@ private object WidgetGraphRenderer {
     private fun drawCenteredText(canvas: Canvas, width: Int, height: Int, text: String) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.rgb(90, 100, 95)
-            textSize = 28f
+            textSize = max(20f, height * 0.15f)
             textAlign = Paint.Align.CENTER
         }
         canvas.drawText(text, width / 2f, height / 2f, paint)
