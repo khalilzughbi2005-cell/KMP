@@ -4,118 +4,173 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
-    android:orientation="vertical">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Mounjaro Log"
-        android:textStyle="bold"
-        android:textSize="16sp"
-        android:textColor="#17352B"/>
+    android:orientation="vertical"
+    android:padding="10dp">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="7dp">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
+            android:gravity="center_vertical"
             android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total lost" android:textSize="10sp" android:textColor="#60766D"/>
-            <TextView android:id="@+id/widget_total_lost" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textStyle="bold" android:textSize="15sp" android:textColor="#17352B"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Total lost"
+                android:textColor="#72867E"
+                android:textSize="9sp" />
+            <TextView
+                android:id="@+id/widget_total_lost"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#17352B"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="30 day"
+                android:textColor="#72867E"
+                android:textSize="9sp" />
+            <TextView
+                android:id="@+id/widget_30d_change"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#17352B"
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
+
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
+            android:gravity="center_vertical"
             android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Last weight" android:textSize="10sp" android:textColor="#60766D"/>
-            <TextView android:id="@+id/widget_last_weight" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textStyle="bold" android:textSize="15sp" android:textColor="#17352B"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Last weight"
+                android:textColor="#72867E"
+                android:textSize="9sp" />
+            <TextView
+                android:id="@+id/widget_last_weight"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#17352B"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Weigh-ins"
+                android:textColor="#72867E"
+                android:textSize="9sp" />
+            <TextView
+                android:id="@+id/widget_entry_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="#17352B"
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
+
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
+            android:gravity="center_vertical"
             android:orientation="vertical">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Current dose" android:textSize="10sp" android:textColor="#60766D"/>
-            <TextView android:id="@+id/widget_current_dose" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="—" android:textStyle="bold" android:textSize="15sp" android:textColor="#17352B"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Current dose"
+                android:textColor="#72867E"
+                android:textSize="9sp" />
+            <TextView
+                android:id="@+id/widget_current_dose"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#17352B"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_dose_window"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="—"
+                android:textColor="#60766D"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/widget_last_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#72867E"
+                android:textSize="9sp" />
         </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="5dp">
-        <TextView
-            android:id="@+id/widget_dose_window"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="—"
-            android:textSize="11sp"
-            android:textColor="#60766D"/>
-        <TextView
-            android:id="@+id/widget_entry_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0"
-            android:textSize="11sp"
-            android:textColor="#60766D"/>
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=" weigh-ins · "
-            android:textSize="11sp"
-            android:textColor="#60766D"/>
-        <TextView
-            android:id="@+id/widget_last_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="—"
-            android:textSize="11sp"
-            android:textColor="#60766D"/>
-    </LinearLayout>
+        android:layout_height="36dp"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="10dp">
         <TextView
             android:id="@+id/widget_add_weight"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
             android:background="@drawable/widget_button_secondary"
+            android:gravity="center"
             android:text="+ Weight"
-            android:textStyle="bold"
-            android:textColor="#174F3D"/>
+            android:textColor="#174F3D"
+            android:textStyle="bold" />
+
         <TextView
             android:id="@+id/widget_add_dose"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="5dp"
             android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:gravity="center"
             android:background="@drawable/widget_button_secondary"
+            android:gravity="center"
             android:text="+ Dose"
-            android:textStyle="bold"
-            android:textColor="#174F3D"/>
+            android:textColor="#174F3D"
+            android:textStyle="bold" />
+
         <TextView
             android:id="@+id/widget_add_both"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="5dp"
             android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:gravity="center"
             android:background="@drawable/widget_button"
+            android:gravity="center"
             android:text="+ Both"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"/>
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

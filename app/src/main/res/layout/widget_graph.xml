@@ -4,44 +4,104 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="12dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
-        <TextView
+
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Weight · 60 days"
-            android:textStyle="bold"
-            android:textSize="15sp"
-            android:textColor="#17352B"/>
-        <TextView
-            android:id="@+id/widget_latest_weight"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Weight trend"
+                android:textColor="#60766D"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/widget_latest_weight"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No weight yet"
+                android:textColor="#17352B"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No weight yet"
-            android:textStyle="bold"
-            android:textSize="13sp"
-            android:textColor="#176B52"/>
-    </LinearLayout>
+            android:gravity="end"
+            android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/widget_latest_dose"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="No dose yet"
-        android:textSize="11sp"
-        android:textColor="#60766D"/>
+            <TextView
+                android:id="@+id/widget_weight_change"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="—"
+                android:textColor="#176B52"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_latest_dose"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="No dose yet"
+                android:textColor="#60766D"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <ImageView
         android:id="@+id/widget_graph_image"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="5dp"
         android:layout_weight="1"
-        android:layout_marginTop="4dp"
-        android:scaleType="fitXY"
-        android:contentDescription="Weight graph"/>
+        android:adjustViewBounds="true"
+        android:contentDescription="Weight graph"
+        android:scaleType="fitCenter" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_graph_start"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="—"
+            android:textColor="#72867E"
+            android:textSize="9sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="60 day view"
+            android:textColor="#72867E"
+            android:textSize="9sp" />
+
+        <TextView
+            android:id="@+id/widget_graph_end"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:text="Today"
+            android:textColor="#72867E"
+            android:textSize="9sp" />
+    </LinearLayout>
 </LinearLayout>

@@ -4,51 +4,59 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="10dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
             <TextView
                 android:id="@+id/widget_latest_weight"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="No weight yet"
-                android:textStyle="bold"
-                android:textSize="15sp"
-                android:textColor="#17352B"/>
+                android:textColor="#17352B"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
             <TextView
                 android:id="@+id/widget_latest_dose"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:text="No dose yet"
-                android:textSize="11sp"
-                android:textColor="#60766D"/>
+                android:textColor="#60766D"
+                android:textSize="11sp" />
         </LinearLayout>
+
         <TextView
             android:id="@+id/widget_add_both"
-            android:layout_width="92dp"
-            android:layout_height="38dp"
-            android:gravity="center"
+            android:layout_width="78dp"
+            android:layout_height="36dp"
             android:background="@drawable/widget_button"
+            android:gravity="center"
             android:text="+ Add"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"/>
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <ImageView
         android:id="@+id/widget_graph_image"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
         android:layout_marginTop="4dp"
-        android:scaleType="fitXY"
-        android:contentDescription="Compact weight graph"/>
+        android:layout_weight="1"
+        android:adjustViewBounds="true"
+        android:contentDescription="Compact weight graph"
+        android:scaleType="fitCenter" />
 </LinearLayout>
