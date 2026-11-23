@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300;400;600;800&family=Funnel+Sans:wght@400;500;600&family=Parkinsans:wght@400;500;600;700&family=Host+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#d4d4d2;padding:32px;display:flex;gap:36px}
+.cap{font:600 13px system-ui;color:#222;margin-bottom:10px}
+.phone{width:390px;height:844px;border-radius:38px;overflow:hidden;position:relative;box-shadow:0 0 0 9px #1c1c1c,0 24px 60px rgba(0,0,0,.22)}
+.st{height:38px;display:flex;justify-content:space-between;align-items:center;padding:0 24px;font:500 13px system-ui;position:relative;z-index:2}
+.gest{position:absolute;bottom:8px;left:50%;width:108px;height:4px;margin-left:-54px;border-radius:2px;background:currentColor;opacity:.35;z-index:3}
+.col{display:flex;flex-direction:column}
+*{font-variant-numeric:tabular-nums}
+svg{display:block}
+
+/* ============ α PLAKAT ============ */
+.A{background:#fff;color:#141414;font-family:"Funnel Sans",sans-serif}
+.A .pad{padding:0 24px}
+.A .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font:500 14px "Funnel Sans";color:#6e6e6a}
+.A .chip{background:#141414;color:#fff;border-radius:99px;padding:6px 12px;font:600 12px "Funnel Sans"}
+.A .hero{font:300 128px/0.86 "Funnel Display";letter-spacing:-6px;margin-top:22px;display:flex;align-items:flex-start}
+.A .hero sup{font:600 15px "Funnel Sans";letter-spacing:0;margin:10px 0 0 10px;color:#6e6e6a}
+.A .sub{display:flex;gap:28px;margin-top:18px}
+.A .sub div{font:500 13px "Funnel Sans";color:#6e6e6a}
+.A .sub b{display:block;font:600 22px "Funnel Display";color:#141414;letter-spacing:-.4px;margin-bottom:2px}
+.A .sub b.r{color:#e8432a}
+.A .cyc{display:flex;gap:6px;margin-top:6px}
+.A .cyc span{flex:1;height:8px;border-radius:4px;background:#ececea}
+.A .cyc span.p{background:#141414}.A .cyc span.n{background:#e8432a}
+.A .cyl{display:flex;justify-content:space-between;font:500 13px "Funnel Sans";color:#6e6e6a;margin-top:10px}
+.A .cyl b{color:#141414;font-weight:600}
+.A .cta{position:absolute;left:16px;right:16px;bottom:28px;display:flex;gap:8px}
+.A .cta div{height:58px;border-radius:18px;display:grid;place-items:center;font:600 16px "Funnel Sans"}
+.A .cta .m{flex:1;background:#e8432a;color:#fff}
+.A .cta .s{width:58px;background:#f1f1ef}
+.A .lbl{font:600 12px "Funnel Sans";color:#6e6e6a;margin:26px 0 8px}
+.A .sheet{position:absolute;left:0;right:0;bottom:0;top:120px;background:#fff;border-radius:28px 28px 0 0;padding:14px 24px}
+.A .grab{width:36px;height:4px;border-radius:2px;background:#d9d9d6;margin:0 auto 18px}
+.A .seg{display:flex;background:#f1f1ef;border-radius:14px;padding:4px}
+.A .seg div{flex:1;text-align:center;padding:10px 0;border-radius:11px;font:600 14px "Funnel Sans";color:#6e6e6a}
+.A .seg .on{background:#fff;color:#141414;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.A .dose{display:flex;gap:8px;flex-wrap:wrap}
+.A .dose span{padding:10px 14px;border-radius:12px;background:#f1f1ef;font:600 14px "Funnel Sans";color:#4a4a47}
+.A .dose span.on{background:#141414;color:#fff}
+
+/* ============ β RISO ============ */
+.B{background:#fbfbf9;color:#22306b;font-family:Parkinsans,sans-serif}
+.B::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;mix-blend-mode:multiply;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .25 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E")}
+.B .pad{padding:0 22px}
+.B .k{font:500 13px Parkinsans;color:#5a66a0}
+.B h2{font:700 30px/1.05 Parkinsans;letter-spacing:-.8px;margin-top:6px}
+.B h2 .hl{background:linear-gradient(transparent 55%,rgba(255,72,160,.55) 55%,rgba(255,72,160,.55) 92%,transparent 92%);padding:0 2px}
+.B .pills{display:flex;justify-content:space-between;margin-top:22px}
+.B .pill{width:44px;height:120px;border-radius:22px;border:2px solid #22306b;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:8px}
+.B .pill .fill{position:absolute;left:0;right:0;bottom:0;background:#ff48a0;mix-blend-mode:multiply;opacity:.85}
+.B .pill b{position:relative;font:700 11px Parkinsans}
+.B .pill .w{position:absolute;top:10px;left:0;right:0;text-align:center;font:600 11px Parkinsans}
+.B .pill.today{background:#22306b;color:#fff}
+.B .pill.f{border-style:dashed;opacity:.5}
+.B .row{display:flex;justify-content:space-between;align-items:baseline;padding:13px 0;border-bottom:1.5px solid rgba(34,48,107,.15)}
+.B .row span{font:500 15px Parkinsans;color:#5a66a0}
+.B .row b{font:700 20px Parkinsans;letter-spacing:-.3px}
+.B .fab{position:absolute;right:20px;bottom:30px;height:60px;padding:0 26px;border-radius:30px;background:#ff48a0;color:#22306b;font:700 16px Parkinsans;display:flex;align-items:center;gap:8px;box-shadow:4px 4px 0 #22306b}
+.B .mx{display:grid;grid-template-columns:34px repeat(7,1fr);gap:5px;margin-top:14px;align-items:center}
+.B .mx i{font-style:normal;font:600 11px Parkinsans;color:#5a66a0;text-align:center}
+.B .mx .c{aspect-ratio:1;border-radius:50%}
+
+/* ============ γ GEZEITEN ============ */
+.G{color:#13233f;font-family:"Host Grotesk",sans-serif;background:#f5f8fb}
+.G .sky{position:absolute;left:0;right:0;top:0;height:430px;background:linear-gradient(180deg,#b9d3ee 0%,#dde9f6 60%,#f5f8fb 100%)}
+.G .pad{padding:0 22px;position:relative;z-index:1}
+.G .t{font:500 14px "Host Grotesk";color:#3f5675;margin-top:8px}
+.G .day{font:700 34px/1.05 "Host Grotesk";letter-spacing:-1px;margin-top:4px}
+.G .day span{color:#ff6a4d}
+.G .card{background:#fff;border-radius:22px;padding:18px;margin-top:12px;box-shadow:0 1px 0 rgba(19,35,63,.04),0 8px 24px rgba(19,35,63,.06)}
+.G .wt{display:flex;justify-content:space-between;align-items:flex-end}
+.G .wt .v{font:600 52px/1 "Host Grotesk";letter-spacing:-2px}
+.G .wt .v small{font-size:18px;letter-spacing:0;color:#6b7d96;margin-left:4px;font-weight:500}
+.G .wt .d{text-align:right;font:500 13px "Host Grotesk";color:#6b7d96}
+.G .wt .d b{display:block;font:600 18px "Host Grotesk";color:#1f8a5b}
+.G .mini{display:flex;gap:10px;margin-top:12px}
+.G .mini .card{flex:1;margin:0;padding:14px 16px}
+.G .mini .k{font:500 12px "Host Grotesk";color:#6b7d96}
+.G .mini .v{font:600 20px "Host Grotesk";margin-top:3px;letter-spacing:-.4px}
+.G .add{position:absolute;left:22px;right:22px;bottom:28px;height:58px;border-radius:16px;background:#13233f;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font:600 16px "Host Grotesk";z-index:2}
+.G .tabs{display:flex;gap:6px;margin-top:14px}
+.G .tabs span{padding:8px 14px;border-radius:10px;font:600 13px "Host Grotesk";color:#3f5675;background:rgba(255,255,255,.6)}
+.G .tabs .on{background:#13233f;color:#fff}
+.G .dl{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #edf1f6}
+.G .dl:last-child{border:0}
+.G .dl .sw{width:10px;height:28px;border-radius:5px}
+.G .dl .n{flex:1;font:600 15px "Host Grotesk"}.G .dl .n small{display:block;font:500 12px "Host Grotesk";color:#6b7d96}
+.G .dl .r{font:600 15px "Host Grotesk"}
+</style></head><body>
+<div class="col" data-d="p"><div class="cap">Schlechter Tag: +0,8 kg über Nacht</div>
+<div class="phone A"><div class="st"><span>07:14</span><span>87 %</span></div>
+<div class="pad">
+  <div class="meta"><span>Dienstag, 24. November</span><span class="chip">7,5 mg · Tag 5</span></div>
+  <div style="margin-top:22px;font:600 13px 'Funnel Sans';color:#6e6e6a">Dein Trend</div>
+  <div class="hero" style="margin-top:6px">98,8<sup>kg</sup></div>
+  <div style="margin-top:14px;font:500 15px/1.45 'Funnel Sans';color:#3a3a37">Heute gewogen: 99,4 kg. Ein Tag sagt wenig, Wasser schwankt oft um 1–2 kg. <b style="color:#141414">Der Trend fällt weiter: −0,4 kg/Woche.</b></div>
+</div>
+<svg id="a1" width="390" height="170" style="margin-top:18px"></svg>
+<div class="pad">
+  <div class="lbl">Seit Start</div>
+  <div style="display:flex;gap:28px"><div style="font:500 13px 'Funnel Sans';color:#6e6e6a"><b style="display:block;font:600 22px 'Funnel Display';color:#141414">13,6 kg</b>leichter als im Juli</div><div style="font:500 13px 'Funnel Sans';color:#6e6e6a"><b style="display:block;font:600 22px 'Funnel Display';color:#141414">86 %</b>der Wochen im Minus</div></div>
+</div>
+<div class="cta"><div class="m">Gewicht eintragen</div><div class="s">+</div></div><div class="gest"></div></div></div>
+
+<div class="col" data-d="p"><div class="cap">Plateau: seit 3 Wochen kaum Bewegung</div>
+<div class="phone A"><div class="st"><span>07:14</span><span>87 %</span></div>
+<div class="pad">
+  <div class="meta"><span>Montag, 14. Dezember</span><span class="chip">7,5 mg · Tag 4</span></div>
+  <div style="margin-top:22px;font:600 26px/1.15 'Funnel Display';letter-spacing:-.5px">Seit 3 Wochen stabil.<br><span style="color:#6e6e6a;font-weight:400">Das ist häufig und kein Rückschritt.</span></div>
+  <div class="lbl" style="margin-top:28px">Was sich trotzdem verändert hat</div>
+  <div class="row2"><span>Taille</span><b>−2 cm</b><i>seit 3 Wochen</i></div>
+  <div class="row2"><span>Gehalten</span><b>13,9 kg</b><i>unter Start, ohne Rückgang</i></div>
+  <div class="row2"><span>Appetit</span><b>ruhig</b><i>meist 1–2 von 5</i></div>
+  <div class="lbl" style="margin-top:26px">Vielleicht hilfreich</div>
+  <div style="font:500 15px/1.5 'Funnel Sans';color:#3a3a37">Notiere Fragen für deinen nächsten Arzttermin, etwa ob eine Dosisanpassung sinnvoll ist.</div>
+  <div style="margin-top:12px;display:inline-block;padding:11px 16px;border-radius:12px;background:#f1f1ef;font:600 14px 'Funnel Sans'">Frage notieren</div>
+</div>
+<div class="cta"><div class="m">Gewicht eintragen</div><div class="s">+</div></div><div class="gest"></div></div></div>
+<style>.A .row2{display:grid;grid-template-columns:1fr auto;padding:12px 0;border-bottom:1px solid #ececea}.A .row2 span{font:500 15px 'Funnel Sans'}.A .row2 b{font:600 17px 'Funnel Display';text-align:right}.A .row2 i{font-style:normal;font:500 12px 'Funnel Sans';color:#6e6e6a;grid-column:1/3}</style>
+<script>
+let seed=11;const rnd=()=>((seed=seed*16807%2147483647)/2147483647);
+const N=140,pts=[],cyc=[.35,.15,-.1,-.25,-.2,0,.12];
+for(let d=0;d<N;d++){const base=112.4-13.6*(1-Math.exp(-d/70))/(1-Math.exp(-N/70));const w=base+(rnd()-.5)*.9+cyc[d%7];if(d==N-1||rnd()<.55)pts.push([d,+w.toFixed(1)])}
+pts[pts.length-1][1]=98.6;let e=pts[0][1];const ema=pts.map(([d,w])=>[d,e=e+.22*(w-e)]);
+const dose=d=>d<28?2.5:d<84?5:7.5;
+// smooth path through points (catmull-rom)
+function smooth(P){let s=`M${P[0][0]},${P[0][1]}`;for(let i=0;i<P.length-1;i++){const p0=P[i-1]||P[i],p1=P[i],p2=P[i+1],p3=P[i+2]||p2;s+=`C${p1[0]+(p2[0]-p0[0])/6},${p1[1]+(p2[1]-p0[1])/6} ${p2[0]-(p3[0]-p1[0])/6},${p2[1]-(p3[1]-p1[1])/6} ${p2[0]},${p2[1]}`}return s}
+function thin(P,step){return P.filter((_,i)=>i%step==0||i==P.length-1)}
+function scale(P,W,H,pt,pb,pl,pr,lo,hi,from=0){return P.filter(p=>p[0]>=from).map(([d,w])=>[pl+(d-from)/(N-1-from)*(W-pl-pr),pt+(hi-w)/(hi-lo)*(H-pt-pb)])}
+
+// α hero area chart, ink line, today dot shown above trend
+(()=>{const s=a1,W=390,H=170,S=scale(thin(ema,3),W,H,10,24,0,0,97,113.5),L=S[S.length-1];
+let g=`<defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141414" stop-opacity=".08"/><stop offset="1" stop-color="#e8432a" stop-opacity="0"/></linearGradient></defs>`;
+g+=`<path d="${smooth(S)} L${W},${H-24} L0,${H-24}Z" fill="url(#ga)"/><path d="${smooth(S)}" fill="none" stroke="#141414" stroke-width="3" stroke-linecap="round"/>`;
+g+=`<circle cx="${L[0]-6}" cy="${L[1]}" r="7" fill="#fff" stroke="#141414" stroke-width="3"/><circle cx="${L[0]-6}" cy="${L[1]-18}" r="4" fill="#9a9a95"/>`;
+[['Jul',0],['Aug',26],['Sep',57],['Okt',87],['Nov',118]].forEach(([m,d])=>g+=`<text x="${8+d/(N-1)*360}" y="${H-4}" font-family="Funnel Sans" font-size="11" fill="#9a9a95">${m}</text>`);
+[[28,'5 mg'],[84,'7,5 mg']].forEach(([d,t])=>{const x=d/(N-1)*390;g+=`<line x1="${x}" x2="${x}" y1="18" y2="${H-24}" stroke="#141414" stroke-opacity=".12"/><text x="${x+5}" y="26" font-family="Funnel Sans" font-weight="600" font-size="11" fill="#6e6e6a">${t}</text>`});
+s.innerHTML=g})();
+</script></body></html>
