@@ -2,121 +2,182 @@ package dev.khalil.mounjarolog.ui
 
 import android.app.DatePickerDialog
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-val DisplayDateFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("d MMM uuuu", Locale.getDefault())
+val German: Locale = Locale.GERMANY
 
-val MonthFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("MMMM uuuu", Locale.getDefault())
+val DisplayDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("d. MMM uuuu", German)
+val ShortDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("d. MMM", German)
+val WeekdayDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, d. MMMM", German)
+val ShortWeekdayFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EE, d.M.", German)
+val MonthFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM uuuu", German)
 
 fun formatDose(dose: Double): String =
-    if (dose % 1.0 == 0.0) dose.toInt().toString() + " mg"
-    else oneDecimal(dose) + " mg"
+    (if (dose % 1.0 == 0.0) dose.toInt().toString() else oneDecimal(dose)) + " mg"
 
-fun oneDecimal(value: Double): String =
-    String.format(Locale.getDefault(), "%.1f", value)
+fun oneDecimal(value: Double): String = String.format(German, "%.1f", value)
 
-fun signed(value: Double, suffix: String = ""): String =
-    (if (value > 0) "+" else "") + oneDecimal(value) + suffix
-
-fun doseColor(dose: Double?): Color = when (dose) {
-    5.0 -> Color(0xFF2E7D32)
-    7.5 -> Color(0xFF1976D2)
-    10.0 -> Color(0xFF6A1B9A)
-    12.5 -> Color(0xFFEF6C00)
-    15.0 -> Color(0xFFC62828)
-    else -> Color(0xFF757575)
+/** Signed with a real minus sign; zero has no sign. */
+fun signed(value: Double, suffix: String = ""): String {
+    val text = oneDecimal(kotlin.math.abs(value))
+    val sign = when {
+        text == oneDecimal(0.0) -> ""
+        value > 0 -> "+"
+        else -> "−"
+    }
+    return sign + text + suffix
 }
 
+/** Accepts "98,6" and "98.6". */
+fun parseDecimal(text: String): Double? = text.trim().replace(',', '.').toDoubleOrNull()
+
 @Composable
-fun SectionCard(
-    title: String,
-    modifier: Modifier = Modifier,
-    subtitle: String? = null,
-    content: @Composable () -> Unit
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        )
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(Modifier.height(10.dp))
-            content()
-        }
+fun Label(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        modifier = modifier,
+        style = MaterialTheme.typography.labelMedium,
+        color = Muted
+    )
+}
+
+/** A titled block without a card around it. */
+@Composable
+fun Section(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Column(modifier.fillMaxWidth().padding(top = 28.dp)) {
+        Label(title, Modifier.padding(bottom = 6.dp))
+        content()
     }
 }
 
 @Composable
-fun MetricRow(label: String, value: String) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 5.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+fun MetricRow(label: String, value: String, detail: String? = null, onClick: (() -> Unit)? = null) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
     ) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontWeight = FontWeight.SemiBold)
+        Row(
+            Modifier.fillMaxWidth().padding(top = 12.dp, bottom = if (detail == null) 12.dp else 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Text(value, style = MaterialTheme.typography.titleMedium)
+        }
+        if (detail != null) {
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = Muted, modifier = Modifier.padding(bottom = 12.dp))
+        }
+        HorizontalDivider(color = Hairline)
+    }
+}
+
+/** Big number with a caption underneath. */
+@Composable
+fun StatBlock(value: String, caption: String, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(value, style = MaterialTheme.typography.headlineSmall)
+        Text(caption, style = MaterialTheme.typography.bodySmall, color = Muted)
     }
 }
 
 @Composable
 fun EmptyState(text: String) {
-    Text(
-        text,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(vertical = 16.dp)
-    )
+    Text(text, color = Muted, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(vertical = 16.dp))
 }
 
+/** Pill choices; the selected one is filled ink. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DoseDot(dose: Double?, modifier: Modifier = Modifier) {
+fun <T> ChoiceChips(options: List<T>, selected: T?, label: (T) -> String, onSelect: (T) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { option ->
+            val on = option == selected
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (on) Ink else Fill)
+                    .clickable(role = Role.RadioButton) { onSelect(option) }
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Text(label(option), style = MaterialTheme.typography.labelLarge, color = if (on) Paper else Ink)
+            }
+        }
+    }
+}
+
+/** iOS-like segmented control in the Plakat style. */
+@Composable
+fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Fill)
+            .padding(4.dp)
+    ) {
+        options.forEachIndexed { index, option ->
+            val on = index == selected
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(if (on) Paper else Color.Transparent)
+                    .clickable(role = Role.Tab) { onSelect(index) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    option,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (on) Ink else Muted,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+/** Full-width accent button for the one main action of a screen. */
+@Composable
+fun AccentButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Box(
         modifier
-            .size(10.dp)
-            .background(doseColor(dose), RoundedCornerShape(50))
-    )
+            .height(58.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (enabled) Accent else Faint)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, color = Paper, style = MaterialTheme.typography.titleMedium)
+    }
 }
 
 @Composable
@@ -126,20 +187,15 @@ fun DatePickerButton(
     label: String = date.format(DisplayDateFormatter)
 ) {
     val context = LocalContext.current
-    OutlinedButton(
-        onClick = {
-            DatePickerDialog(
-                context,
-                { _, year, month, day ->
-                    onDateChange(LocalDate.of(year, month + 1, day))
-                },
-                date.year,
-                date.monthValue - 1,
-                date.dayOfMonth
-            ).show()
-        }
-    ) {
-        Icon(Icons.Default.CalendarMonth, contentDescription = null)
-        Text("  " + label)
+    TextButton(onClick = {
+        DatePickerDialog(
+            context,
+            { _, year, month, day -> onDateChange(LocalDate.of(year, month + 1, day)) },
+            date.year,
+            date.monthValue - 1,
+            date.dayOfMonth
+        ).show()
+    }) {
+        Text(label, fontWeight = FontWeight.SemiBold)
     }
 }

@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import dev.khalil.mounjarolog.data.BackupCodec
 import dev.khalil.mounjarolog.data.LoggerDatabase
 import dev.khalil.mounjarolog.model.AppData
+import dev.khalil.mounjarolog.model.DayLog
+import dev.khalil.mounjarolog.reminder.InjectionReminder
 import dev.khalil.mounjarolog.widget.HomeWidgetUpdater
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +33,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun refresh() {
         viewModelScope.launch {
             _data.value = withContext(Dispatchers.IO) { database.loadAll() }
+            InjectionReminder.schedule(getApplication(), _data.value)
         }
     }
 
@@ -39,21 +42,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         weightKg: Double?,
         doseMg: Double?,
         injectionSite: String = "",
-        appetite: Int? = null,
-        sideEffects: String = "",
         note: String = "",
         onDone: (Result<Unit>) -> Unit = {}
     ) {
-        if (weightKg == null && doseMg == null && appetite == null && sideEffects.isBlank() && note.isBlank()) {
-            onDone(Result.failure(IllegalArgumentException("Add at least one value.")))
+        if (weightKg == null && doseMg == null) {
+            onDone(Result.failure(IllegalArgumentException("Gewicht oder Dosis angeben.")))
             return
         }
         if (weightKg != null && weightKg !in 20.0..400.0) {
-            onDone(Result.failure(IllegalArgumentException("Weight must be between 20 and 400 kg.")))
+            onDone(Result.failure(IllegalArgumentException("Gewicht muss zwischen 20 und 400 kg liegen.")))
             return
         }
         runWrite(onDone) {
-            database.addEntry(date, weightKg, doseMg, injectionSite, appetite, sideEffects, note)
+            database.addEntry(date, weightKg, doseMg, injectionSite, note)
         }
     }
 
@@ -65,7 +66,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         onDone: (Result<Unit>) -> Unit = {}
     ) {
         if (weightKg !in 20.0..400.0) {
-            onDone(Result.failure(IllegalArgumentException("Weight must be between 20 and 400 kg.")))
+            onDone(Result.failure(IllegalArgumentException("Gewicht muss zwischen 20 und 400 kg liegen.")))
             return
         }
         runWrite(onDone) { database.updateWeight(id, date, weightKg, note) }
@@ -82,14 +83,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         runWrite(onDone) { database.updateInjection(id, date, doseMg, injectionSite, note) }
     }
 
-    fun upsertDayLog(
-        date: LocalDate,
-        appetite: Int?,
-        sideEffects: String,
-        note: String,
-        onDone: (Result<Unit>) -> Unit = {}
-    ) {
-        runWrite(onDone) { database.upsertDayLog(date, appetite, sideEffects, note) }
+    fun upsertDayLog(log: DayLog, onDone: (Result<Unit>) -> Unit = {}) {
+        if (log.waistCm != null && log.waistCm !in 30.0..250.0) {
+            onDone(Result.failure(IllegalArgumentException("Taillenumfang muss zwischen 30 und 250 cm liegen.")))
+            return
+        }
+        runWrite(onDone) { database.upsertDayLog(log) }
     }
 
     fun deleteWeight(id: Long, onDone: (Result<Unit>) -> Unit = {}) {
@@ -106,7 +105,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addMilestone(targetKg: Double, label: String = "", onDone: (Result<Unit>) -> Unit = {}) {
         if (targetKg !in 20.0..400.0) {
-            onDone(Result.failure(IllegalArgumentException("Milestone must be between 20 and 400 kg.")))
+            onDone(Result.failure(IllegalArgumentException("Ziel muss zwischen 20 und 400 kg liegen.")))
             return
         }
         runWrite(onDone) { database.addMilestone(targetKg, label) }
@@ -114,7 +113,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateMilestone(id: Long, targetKg: Double, label: String, onDone: (Result<Unit>) -> Unit = {}) {
         if (targetKg !in 20.0..400.0) {
-            onDone(Result.failure(IllegalArgumentException("Milestone must be between 20 and 400 kg.")))
+            onDone(Result.failure(IllegalArgumentException("Ziel muss zwischen 20 und 400 kg liegen.")))
             return
         }
         runWrite(onDone) { database.updateMilestone(id, targetKg, label) }
@@ -137,6 +136,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             result.onSuccess {
                 _data.value = it
                 HomeWidgetUpdater.updateAll(getApplication())
+                InjectionReminder.schedule(getApplication(), it)
             }
             _busy.value = false
             onDone(result.map { Unit })
@@ -158,6 +158,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             result.onSuccess {
                 _data.value = it
                 HomeWidgetUpdater.updateAll(getApplication())
+                InjectionReminder.schedule(getApplication(), it)
             }
             _busy.value = false
             onDone(result.map { Unit })

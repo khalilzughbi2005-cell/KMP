@@ -44,7 +44,9 @@ class LoggerDatabase(private val context: Context) :
                 date TEXT NOT NULL UNIQUE,
                 appetite INTEGER,
                 side_effects TEXT NOT NULL DEFAULT '',
-                note TEXT NOT NULL DEFAULT ''
+                note TEXT NOT NULL DEFAULT '',
+                waist_cm REAL,
+                question TEXT NOT NULL DEFAULT ''
             )""".trimIndent()
         )
         db.execSQL(
@@ -60,6 +62,10 @@ class LoggerDatabase(private val context: Context) :
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         // Add future schema changes as migrations. Never drop the user's tables here.
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE day_logs ADD COLUMN waist_cm REAL")
+            db.execSQL("ALTER TABLE day_logs ADD COLUMN question TEXT NOT NULL DEFAULT ''")
+        }
     }
 
     fun loadAll(): AppData = readableDatabase.let { db ->
@@ -92,12 +98,15 @@ class LoggerDatabase(private val context: Context) :
         db.query("day_logs", null, null, null, null, null, "date ASC, id ASC").use { c ->
             while (c.moveToNext()) {
                 val appetiteIndex = c.getColumnIndexOrThrow("appetite")
+                val waistIndex = c.getColumnIndexOrThrow("waist_cm")
                 dayLogs += DayLog(
                     id = c.getLong(c.getColumnIndexOrThrow("id")),
                     date = LocalDate.parse(c.getString(c.getColumnIndexOrThrow("date"))),
                     appetite = if (c.isNull(appetiteIndex)) null else c.getInt(appetiteIndex),
                     sideEffects = c.getString(c.getColumnIndexOrThrow("side_effects")),
-                    note = c.getString(c.getColumnIndexOrThrow("note"))
+                    note = c.getString(c.getColumnIndexOrThrow("note")),
+                    waistCm = if (c.isNull(waistIndex)) null else c.getDouble(waistIndex),
+                    question = c.getString(c.getColumnIndexOrThrow("question"))
                 )
             }
         }
@@ -121,8 +130,6 @@ class LoggerDatabase(private val context: Context) :
         weightKg: Double?,
         doseMg: Double?,
         injectionSite: String,
-        appetite: Int?,
-        sideEffects: String,
         note: String
     ) {
         val db = writableDatabase
@@ -133,9 +140,6 @@ class LoggerDatabase(private val context: Context) :
             }
             doseMg?.let {
                 db.insertOrThrow("injections", null, injectionValues(date, it, injectionSite, note))
-            }
-            if (appetite != null || sideEffects.isNotBlank() || (weightKg == null && doseMg == null && note.isNotBlank())) {
-                upsertDayLogInTransaction(db, date, appetite, sideEffects, note)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -172,17 +176,16 @@ class LoggerDatabase(private val context: Context) :
         writeSnapshot()
     }
 
-    fun upsertDayLog(
-        date: LocalDate,
-        appetite: Int?,
-        sideEffects: String,
-        note: String
-    ) {
+    fun upsertDayLog(log: DayLog) {
         val db = writableDatabase
-        if (appetite == null && sideEffects.isBlank() && note.isBlank()) {
-            db.delete("day_logs", "date=?", arrayOf(date.toString()))
+        if (log.appetite == null && log.sideEffects.isBlank() && log.note.isBlank() &&
+            log.waistCm == null && log.question.isBlank()
+        ) {
+            db.delete("day_logs", "date=?", arrayOf(log.date.toString()))
         } else {
-            upsertDayLogInTransaction(db, date, appetite, sideEffects, note)
+            val values = dayLogValues(log)
+            val updated = db.update("day_logs", values, "date=?", arrayOf(log.date.toString()))
+            if (updated == 0) db.insertOrThrow("day_logs", null, values)
         }
         writeSnapshot()
     }
@@ -244,7 +247,7 @@ class LoggerDatabase(private val context: Context) :
                 })
             }
             data.dayLogs.forEach {
-                db.insertOrThrow("day_logs", null, dayLogValues(it.date, it.appetite, it.sideEffects, it.note).apply {
+                db.insertOrThrow("day_logs", null, dayLogValues(it).apply {
                     if (it.id > 0) put("id", it.id)
                 })
             }
@@ -258,18 +261,6 @@ class LoggerDatabase(private val context: Context) :
             db.endTransaction()
         }
         writeSnapshot()
-    }
-
-    private fun upsertDayLogInTransaction(
-        db: SQLiteDatabase,
-        date: LocalDate,
-        appetite: Int?,
-        sideEffects: String,
-        note: String
-    ) {
-        val values = dayLogValues(date, appetite, sideEffects, note)
-        val updated = db.update("day_logs", values, "date=?", arrayOf(date.toString()))
-        if (updated == 0) db.insertOrThrow("day_logs", null, values)
     }
 
     private fun weightValues(date: LocalDate, weightKg: Double, note: String) =
@@ -291,16 +282,13 @@ class LoggerDatabase(private val context: Context) :
         put("note", note.trim())
     }
 
-    private fun dayLogValues(
-        date: LocalDate,
-        appetite: Int?,
-        sideEffects: String,
-        note: String
-    ) = ContentValues().apply {
-        put("date", date.toString())
-        if (appetite == null) putNull("appetite") else put("appetite", appetite.coerceIn(1, 5))
-        put("side_effects", sideEffects.trim())
-        put("note", note.trim())
+    private fun dayLogValues(log: DayLog) = ContentValues().apply {
+        put("date", log.date.toString())
+        if (log.appetite == null) putNull("appetite") else put("appetite", log.appetite.coerceIn(1, 5))
+        put("side_effects", log.sideEffects.trim())
+        put("note", log.note.trim())
+        if (log.waistCm == null) putNull("waist_cm") else put("waist_cm", log.waistCm)
+        put("question", log.question.trim())
     }
 
     private fun milestoneValues(targetKg: Double, label: String) =
@@ -314,7 +302,7 @@ class LoggerDatabase(private val context: Context) :
         val next = (dir.listFiles()?.mapNotNull {
             it.nameWithoutExtension.removePrefix("snapshot_").toIntOrNull()
         }?.maxOrNull() ?: 0) + 1
-        File(dir, "snapshot_\${next}.json").writeText(BackupCodec.toJson(loadAll()))
+        File(dir, "snapshot_${next}.json").writeText(BackupCodec.toJson(loadAll()))
 
         dir.listFiles()
             ?.sortedByDescending { it.lastModified() }
@@ -324,7 +312,7 @@ class LoggerDatabase(private val context: Context) :
 
     companion object {
         private const val DB_NAME = "mounjaro_log.db"
-        private const val DB_VERSION = 1
+        private const val DB_VERSION = 2
         private const val MAX_SNAPSHOTS = 5
     }
 }

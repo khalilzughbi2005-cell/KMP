@@ -2,16 +2,13 @@ package dev.khalil.mounjarolog.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,170 +19,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import dev.khalil.mounjarolog.model.DayLog
 import dev.khalil.mounjarolog.model.Injection
+import dev.khalil.mounjarolog.model.InjectionSites
 import dev.khalil.mounjarolog.model.Milestone
 import dev.khalil.mounjarolog.model.SupportedDoses
 import dev.khalil.mounjarolog.model.WeightMeasurement
 import java.time.LocalDate
 
-@Composable
-fun NewEntryDialog(
-    initialDate: LocalDate,
-    initialMode: String? = null,
-    onDismiss: () -> Unit,
-    onSave: (
-        date: LocalDate,
-        weightKg: Double?,
-        doseMg: Double?,
-        injectionSite: String,
-        appetite: Int?,
-        sideEffects: String,
-        note: String
-    ) -> Unit
-) {
-    var dateText by rememberSaveable { mutableStateOf(initialDate.toString()) }
-    var weightText by rememberSaveable { mutableStateOf("") }
-    var dose by rememberSaveable { mutableStateOf<Double?>(null) }
-    var site by rememberSaveable { mutableStateOf("") }
-    var appetite by rememberSaveable { mutableStateOf<Int?>(null) }
-    var sideEffects by rememberSaveable { mutableStateOf("") }
-    var note by rememberSaveable { mutableStateOf("") }
-    var advanced by rememberSaveable { mutableStateOf(false) }
-    var error by rememberSaveable { mutableStateOf<String?>(null) }
-    val showWeight = initialMode != "dose"
-    val showDose = initialMode != "weight"
-    val dialogTitle = when (initialMode) {
-        "weight" -> "Add weight"
-        "dose" -> "Add dose"
-        else -> "Add entry"
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(dialogTitle) },
-        text = {
-            Column(
-                Modifier.fillMaxWidth().heightIn(max = 560.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                DatePickerButton(
-                    date = LocalDate.parse(dateText),
-                    onDateChange = { dateText = it.toString() }
-                )
-                if (showWeight) {
-                    OutlinedTextField(
-                        value = weightText,
-                        onValueChange = { weightText = it.replace(',', '.') },
-                        label = { Text("Weight (kg)" + if (showDose) " — optional" else "") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                    )
-                }
-                if (showDose) {
-                    Text("Dose" + if (showWeight) " — optional" else "")
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (showWeight) {
-                            item {
-                                FilterChip(
-                                    selected = dose == null,
-                                    onClick = { dose = null },
-                                    label = { Text("None") }
-                                )
-                            }
-                        }
-                        items(SupportedDoses) { item ->
-                            FilterChip(
-                                selected = dose == item,
-                                onClick = { dose = item },
-                                label = { Text(formatDose(item)) }
-                            )
-                        }
-                    }
-                }
-
-                TextButton(onClick = { advanced = !advanced }) {
-                    Text(if (advanced) "Hide optional details" else "Add optional details")
-                }
-
-                if (advanced) {
-                    if (showDose) {
-                        OutlinedTextField(
-                            value = site,
-                            onValueChange = { site = it },
-                            label = { Text("Injection site — optional") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                    }
-                    Text("Appetite — optional self-rating")
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        item {
-                            FilterChip(
-                                selected = appetite == null,
-                                onClick = { appetite = null },
-                                label = { Text("None") }
-                            )
-                        }
-                        items((1..5).toList()) { level ->
-                            FilterChip(
-                                selected = appetite == level,
-                                onClick = { appetite = level },
-                                label = { Text(level.toString()) }
-                            )
-                        }
-                    }
-                    OutlinedTextField(
-                        value = sideEffects,
-                        onValueChange = { sideEffects = it },
-                        label = { Text("Side effects / symptoms — optional") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2
-                    )
-                }
-
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = { Text("Note — optional") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2
-                )
-
-                error?.let { Text(it) }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val weight = if (weightText.isBlank()) null else weightText.toDoubleOrNull()
-                    when {
-                        weightText.isNotBlank() && weight == null ->
-                            error = "Enter a valid weight."
-                        weight == null && dose == null && appetite == null &&
-                            sideEffects.isBlank() && note.isBlank() ->
-                            error = "Add at least one value."
-                        else -> onSave(
-                            LocalDate.parse(dateText),
-                            weight,
-                            dose,
-                            site,
-                            appetite,
-                            sideEffects,
-                            note
-                        )
-                    }
-                }
-            ) { Text("Save") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-}
+private val decimal = KeyboardOptions(keyboardType = KeyboardType.Decimal)
 
 @Composable
 fun WeightEditorDialog(
@@ -195,48 +38,43 @@ fun WeightEditorDialog(
     onDelete: () -> Unit
 ) {
     var dateText by rememberSaveable(item.id) { mutableStateOf(item.date.toString()) }
-    var weightText by rememberSaveable(item.id) { mutableStateOf(item.weightKg.toString()) }
+    var weightText by rememberSaveable(item.id) { mutableStateOf(oneDecimal(item.weightKg)) }
     var note by rememberSaveable(item.id) { mutableStateOf(item.note) }
     var confirmDelete by rememberSaveable(item.id) { mutableStateOf(false) }
     var error by rememberSaveable(item.id) { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit weight") },
+        title = { Text("Gewicht bearbeiten") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 DatePickerButton(LocalDate.parse(dateText), { dateText = it.toString() })
                 OutlinedTextField(
                     value = weightText,
-                    onValueChange = { weightText = it.replace(',', '.') },
-                    label = { Text("Weight (kg)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    onValueChange = { weightText = it },
+                    label = { Text("Gewicht (kg)") },
+                    keyboardOptions = decimal,
                     singleLine = true
                 )
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = { Text("Note") },
-                    minLines = 2
-                )
-                error?.let { Text(it) }
-                OutlinedButton(onClick = { confirmDelete = true }) { Text("Delete weight") }
+                OutlinedTextField(value = note, onValueChange = { note = it }, label = { Text("Notiz") }, minLines = 2)
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = { confirmDelete = true }) { Text("Gewicht löschen") }
             }
         },
         confirmButton = {
             Button(onClick = {
-                val value = weightText.toDoubleOrNull()
-                if (value == null) error = "Enter a valid weight."
+                val value = parseDecimal(weightText)
+                if (value == null) error = "Bitte ein gültiges Gewicht eingeben."
                 else onSave(LocalDate.parse(dateText), value, note)
-            }) { Text("Save changes") }
+            }) { Text("Speichern") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } }
     )
 
     if (confirmDelete) {
         ConfirmDeleteDialog(
-            title = "Delete this weight?",
-            message = "This removes the measurement from your history and graphs.",
+            title = "Dieses Gewicht löschen?",
+            message = "Die Messung verschwindet aus Verlauf und Diagrammen.",
             onDismiss = { confirmDelete = false },
             onConfirm = onDelete
         )
@@ -258,119 +96,113 @@ fun InjectionEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit injection") },
+        title = { Text("Spritze bearbeiten") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 DatePickerButton(LocalDate.parse(dateText), { dateText = it.toString() })
-                Text("Dose")
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(SupportedDoses) { itemDose ->
-                        FilterChip(
-                            selected = dose == itemDose,
-                            onClick = { dose = itemDose },
-                            label = { Text(formatDose(itemDose)) }
-                        )
-                    }
-                }
-                OutlinedTextField(
-                    value = site,
-                    onValueChange = { site = it },
-                    label = { Text("Injection site — optional") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = { Text("Note") },
-                    minLines = 2
-                )
-                OutlinedButton(onClick = { confirmDelete = true }) { Text("Delete injection") }
+                ChoiceChips(SupportedDoses, dose, { formatDose(it) }) { dose = it }
+                ChoiceChips(InjectionSites, site, { it }) { site = it }
+                OutlinedTextField(value = site, onValueChange = { site = it }, label = { Text("Einstichstelle") }, singleLine = true)
+                OutlinedTextField(value = note, onValueChange = { note = it }, label = { Text("Notiz") }, minLines = 2)
+                TextButton(onClick = { confirmDelete = true }) { Text("Spritze löschen") }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                onSave(LocalDate.parse(dateText), dose, site, note)
-            }) { Text("Save changes") }
+            Button(onClick = { onSave(LocalDate.parse(dateText), dose, site, note) }) { Text("Speichern") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } }
     )
 
     if (confirmDelete) {
         ConfirmDeleteDialog(
-            title = "Delete this injection?",
-            message = "Dose-window colours and dose statistics will be recalculated.",
+            title = "Diese Spritze löschen?",
+            message = "Zyklen und Dosis-Auswertungen werden neu berechnet.",
             onDismiss = { confirmDelete = false },
             onConfirm = onDelete
         )
     }
 }
 
+/** Appetite, side effects, waist, note and a question for the doctor, all for one calendar day. */
 @Composable
 fun DayLogEditorDialog(
     initialDate: LocalDate,
     item: DayLog?,
     onDismiss: () -> Unit,
-    onSave: (Int?, String, String) -> Unit,
+    onSave: (DayLog) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
-    var appetite by rememberSaveable(item?.id, initialDate) { mutableStateOf(item?.appetite) }
-    var sideEffects by rememberSaveable(item?.id, initialDate) { mutableStateOf(item?.sideEffects.orEmpty()) }
-    var note by rememberSaveable(item?.id, initialDate) { mutableStateOf(item?.note.orEmpty()) }
-    var confirmDelete by rememberSaveable(item?.id, initialDate) { mutableStateOf(false) }
+    val key = item?.id to initialDate
+    var appetite by rememberSaveable(key) { mutableStateOf(item?.appetite) }
+    var sideEffects by rememberSaveable(key) { mutableStateOf(item?.sideEffects.orEmpty()) }
+    var waistText by rememberSaveable(key) { mutableStateOf(item?.waistCm?.let(::oneDecimal).orEmpty()) }
+    var note by rememberSaveable(key) { mutableStateOf(item?.note.orEmpty()) }
+    var question by rememberSaveable(key) { mutableStateOf(item?.question.orEmpty()) }
+    var confirmDelete by rememberSaveable(key) { mutableStateOf(false) }
+    var error by rememberSaveable(key) { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Daily notes · " + initialDate.format(DisplayDateFormatter)) },
+        title = { Text("Notizen · " + initialDate.format(DisplayDateFormatter)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Appetite — optional self-rating")
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item {
-                        FilterChip(
-                            selected = appetite == null,
-                            onClick = { appetite = null },
-                            label = { Text("None") }
-                        )
-                    }
-                    items((1..5).toList()) { level ->
-                        FilterChip(
-                            selected = appetite == level,
-                            onClick = { appetite = level },
-                            label = { Text(level.toString()) }
-                        )
-                    }
-                }
-                OutlinedTextField(
-                    value = sideEffects,
-                    onValueChange = { sideEffects = it },
-                    label = { Text("Side effects / symptoms") },
-                    minLines = 2
+            Column(
+                Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                DayLogFields(
+                    appetite = appetite, onAppetite = { appetite = it },
+                    sideEffects = sideEffects, onSideEffects = { sideEffects = it },
+                    waistText = waistText, onWaist = { waistText = it },
+                    note = note, onNote = { note = it },
+                    question = question, onQuestion = { question = it }
                 )
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = { note = it },
-                    label = { Text("Note") },
-                    minLines = 2
-                )
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (item != null && onDelete != null) {
-                    OutlinedButton(onClick = { confirmDelete = true }) { Text("Delete daily note") }
+                    TextButton(onClick = { confirmDelete = true }) { Text("Notizen dieses Tages löschen") }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(appetite, sideEffects, note) }) { Text("Save") }
+            Button(onClick = {
+                val waist = if (waistText.isBlank()) null else parseDecimal(waistText)
+                if (waistText.isNotBlank() && waist == null) error = "Bitte einen gültigen Umfang eingeben."
+                else onSave(DayLog(item?.id ?: 0, initialDate, appetite, sideEffects, note, waist, question))
+            }) { Text("Speichern") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } }
     )
 
     if (confirmDelete && onDelete != null) {
         ConfirmDeleteDialog(
-            title = "Delete this daily note?",
-            message = "The weight and injection records for the day are not affected.",
+            title = "Notizen löschen?",
+            message = "Gewicht und Spritzen dieses Tages bleiben erhalten.",
             onDismiss = { confirmDelete = false },
             onConfirm = onDelete
         )
     }
+}
+
+/** Shared by the day-log dialog and the entry sheet. */
+@Composable
+fun DayLogFields(
+    appetite: Int?, onAppetite: (Int?) -> Unit,
+    sideEffects: String, onSideEffects: (String) -> Unit,
+    waistText: String, onWaist: (String) -> Unit,
+    note: String, onNote: (String) -> Unit,
+    question: String, onQuestion: (String) -> Unit
+) {
+    Label("Appetit (1 = kaum, 5 = sehr groß)")
+    ChoiceChips(listOf(1, 2, 3, 4, 5), appetite, { it.toString() }) { onAppetite(if (appetite == it) null else it) }
+    OutlinedTextField(sideEffects, onSideEffects, label = { Text("Nebenwirkungen") }, minLines = 2)
+    OutlinedTextField(
+        waistText, onWaist, label = { Text("Taillenumfang (cm)") },
+        keyboardOptions = decimal, singleLine = true
+    )
+    OutlinedTextField(note, onNote, label = { Text("Notiz") }, minLines = 2)
+    OutlinedTextField(question, onQuestion, label = { Text("Frage für den Arzttermin") }, minLines = 2)
 }
 
 @Composable
@@ -380,49 +212,44 @@ fun MilestoneEditorDialog(
     onSave: (Double, String) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
-    var targetText by rememberSaveable(item?.id) { mutableStateOf(item?.targetKg?.toString().orEmpty()) }
+    var targetText by rememberSaveable(item?.id) { mutableStateOf(item?.targetKg?.let(::oneDecimal).orEmpty()) }
     var label by rememberSaveable(item?.id) { mutableStateOf(item?.label.orEmpty()) }
     var error by rememberSaveable(item?.id) { mutableStateOf<String?>(null) }
     var confirmDelete by rememberSaveable(item?.id) { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (item == null) "Add milestone" else "Edit milestone") },
+        title = { Text(if (item == null) "Ziel hinzufügen" else "Ziel bearbeiten") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = targetText,
-                    onValueChange = { targetText = it.replace(',', '.') },
-                    label = { Text("Target weight (kg)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    onValueChange = { targetText = it },
+                    label = { Text("Zielgewicht (kg)") },
+                    keyboardOptions = decimal,
                     singleLine = true
                 )
-                OutlinedTextField(
-                    value = label,
-                    onValueChange = { label = it },
-                    label = { Text("Label — optional") },
-                    singleLine = true
-                )
-                error?.let { Text(it) }
+                OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text("Bezeichnung (optional)") }, singleLine = true)
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (item != null && onDelete != null) {
-                    OutlinedButton(onClick = { confirmDelete = true }) { Text("Delete milestone") }
+                    TextButton(onClick = { confirmDelete = true }) { Text("Ziel löschen") }
                 }
             }
         },
         confirmButton = {
             Button(onClick = {
-                val target = targetText.toDoubleOrNull()
-                if (target == null) error = "Enter a valid target weight."
+                val target = parseDecimal(targetText)
+                if (target == null) error = "Bitte ein gültiges Zielgewicht eingeben."
                 else onSave(target, label)
-            }) { Text("Save") }
+            }) { Text("Speichern") }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } }
     )
 
     if (confirmDelete && onDelete != null) {
         ConfirmDeleteDialog(
-            title = "Delete this milestone?",
-            message = "The milestone line will be removed from your graph.",
+            title = "Dieses Ziel löschen?",
+            message = "Die Ziellinie verschwindet aus dem Diagramm.",
             onDismiss = { confirmDelete = false },
             onConfirm = onDelete
         )
@@ -440,11 +267,7 @@ fun ConfirmDeleteDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(message) },
-        confirmButton = {
-            Button(onClick = onConfirm) { Text("Delete") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        confirmButton = { Button(onClick = onConfirm) { Text("Löschen") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Abbrechen") } }
     )
 }

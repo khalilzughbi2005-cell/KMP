@@ -10,10 +10,10 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Quick add"
+        android:text="Schnell eintragen"
         android:textStyle="bold"
         android:textSize="16sp"
-        android:textColor="#17352B"/>
+        android:textColor="#141414"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -25,16 +25,16 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="No weight yet"
+            android:text="Noch kein Gewicht"
             android:textSize="13sp"
-            android:textColor="#486158"/>
+            android:textColor="#6E6E6A"/>
         <TextView
             android:id="@+id/widget_latest_dose"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No dose yet"
+            android:text="Noch keine Spritze"
             android:textSize="13sp"
-            android:textColor="#486158"/>
+            android:textColor="#6E6E6A"/>
     </LinearLayout>
 
     <LinearLayout
@@ -49,9 +49,9 @@
             android:layout_weight="1"
             android:gravity="center"
             android:background="@drawable/widget_button_secondary"
-            android:text="Weight"
+            android:text="Gewicht"
             android:textStyle="bold"
-            android:textColor="#174F3D"/>
+            android:textColor="#141414"/>
         <TextView
             android:id="@+id/widget_add_dose"
             android:layout_width="0dp"
@@ -60,9 +60,9 @@
             android:layout_marginStart="6dp"
             android:gravity="center"
             android:background="@drawable/widget_button_secondary"
-            android:text="Dose"
+            android:text="Spritze"
             android:textStyle="bold"
-            android:textColor="#174F3D"/>
+            android:textColor="#141414"/>
         <TextView
             android:id="@+id/widget_add_both"
             android:layout_width="0dp"
@@ -71,7 +71,7 @@
             android:layout_marginStart="6dp"
             android:gravity="center"
             android:background="@drawable/widget_button"
-            android:text="Both"
+            android:text="Beides"
             android:textStyle="bold"
             android:textColor="#FFFFFF"/>
     </LinearLayout>

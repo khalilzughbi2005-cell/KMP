@@ -23,15 +23,15 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Total lost"
-                android:textColor="#72867E"
+                android:text="Seit Start"
+                android:textColor="#6E6E6A"
                 android:textSize="9sp" />
             <TextView
                 android:id="@+id/widget_total_lost"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#17352B"
+                android:textColor="#141414"
                 android:textSize="17sp"
                 android:textStyle="bold" />
 
@@ -39,15 +39,15 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="30 day"
-                android:textColor="#72867E"
+                android:text="30 Tage"
+                android:textColor="#6E6E6A"
                 android:textSize="9sp" />
             <TextView
                 android:id="@+id/widget_30d_change"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#17352B"
+                android:textColor="#141414"
                 android:textSize="13sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -62,15 +62,15 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Last weight"
-                android:textColor="#72867E"
+                android:text="Zuletzt"
+                android:textColor="#6E6E6A"
                 android:textSize="9sp" />
             <TextView
                 android:id="@+id/widget_last_weight"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#17352B"
+                android:textColor="#141414"
                 android:textSize="17sp"
                 android:textStyle="bold" />
 
@@ -78,15 +78,15 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="Weigh-ins"
-                android:textColor="#72867E"
+                android:text="Wägungen"
+                android:textColor="#6E6E6A"
                 android:textSize="9sp" />
             <TextView
                 android:id="@+id/widget_entry_count"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0"
-                android:textColor="#17352B"
+                android:textColor="#141414"
                 android:textSize="13sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -101,15 +101,15 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Current dose"
-                android:textColor="#72867E"
+                android:text="Dosis"
+                android:textColor="#6E6E6A"
                 android:textSize="9sp" />
             <TextView
                 android:id="@+id/widget_current_dose"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#17352B"
+                android:textColor="#141414"
                 android:textSize="17sp"
                 android:textStyle="bold" />
 
@@ -119,7 +119,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:text="—"
-                android:textColor="#60766D"
+                android:textColor="#6E6E6A"
                 android:textSize="11sp" />
 
             <TextView
@@ -127,7 +127,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#72867E"
+                android:textColor="#6E6E6A"
                 android:textSize="9sp" />
         </LinearLayout>
     </LinearLayout>
@@ -145,8 +145,8 @@
             android:layout_weight="1"
             android:background="@drawable/widget_button_secondary"
             android:gravity="center"
-            android:text="+ Weight"
-            android:textColor="#174F3D"
+            android:text="+ Gewicht"
+            android:textColor="#141414"
             android:textStyle="bold" />
 
         <TextView
@@ -157,8 +157,8 @@
             android:layout_weight="1"
             android:background="@drawable/widget_button_secondary"
             android:gravity="center"
-            android:text="+ Dose"
-            android:textColor="#174F3D"
+            android:text="+ Spritze"
+            android:textColor="#141414"
             android:textStyle="bold" />
 
         <TextView
@@ -169,7 +169,7 @@
             android:layout_weight="1"
             android:background="@drawable/widget_button"
             android:gravity="center"
-            android:text="+ Both"
+            android:text="+ Beides"
             android:textColor="#FFFFFF"
             android:textStyle="bold" />
     </LinearLayout>

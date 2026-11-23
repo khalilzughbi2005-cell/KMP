@@ -1,84 +1,49 @@
 # Mounjaro Log
 
-A local-first Android app for personally logging weight, Mounjaro injection dates and optional daily notes.
+Eine Android-App, die nur auf dem Gerät speichert: Gewicht, Mounjaro-Spritzen und Tagesnotizen.
 
-## v1.1 feature set
+## Version 2.0
 
-### Fast logging
-- Quick entry directly on Home
-- Calendar date only — no unnecessary time-of-day precision
-- Weight and injection are independent records
-- Weight-only, dose-only and combined entries are supported
-- Dose choices: 2.5, 5, 7.5, 10, 12.5 and 15 mg
-- Optional injection site, appetite self-rating, side-effect/symptom text and notes
+### Gestaltung
+- Stil „Plakat“: Tinte auf Weiß, ein Akzent (Zinnoberrot) nur für Aktionen und „heute“
+- Schriften Funnel Display und Funnel Sans (SIL Open Font License, siehe `app/src/main/assets/funnel-fonts-OFL.txt`)
+- Gewichtsänderungen sind nie rot oder grün gefärbt; Dosen sind Abstufungen einer Farbe
+- Komplett auf Deutsch
 
-### Dose-window logic
-- Injection date is day 1
-- The dose context covers seven calendar dates: injection date through six days after it
-- A new injection replaces the previous context from its own date onward
-- 2.5 mg is shown in grey
-- Measurements outside an active seven-day window are shown in grey
-- Dose context is presented descriptively and is not treated as proof that a dose caused a weight change
+### Aufbau
+Vier Bereiche: **Heute · Verlauf · Auswertung · Mehr**.
 
-### Progress
-- Weight graph
-- Weight-lost graph
-- Percent-lost graph
-- Weekly-rate graph
-- Step-style dose graph
-- Ranges: 1 month, 2 months, 3 months, 6 months, 1 year, all time and custom start/end
-- Dose-window background bands fade upward from the x-axis
-- Injection and day-7 boundary posts
-- Dose-window backgrounds are clipped by the next injection so dose fields never overlap
-- Weight lines stay solid unless more than seven days pass with neither a weight measurement nor a dose entry
-- Only the inactive portion after that seven-day threshold is dotted
-- Tap a graph point to inspect its date/value
-- Toggle dose bands, injection posts and milestone lines
+- **Heute**: Der geglättete Trend ist die Hauptzahl, die heutige Messung steht klein daneben. Bei Sprüngen ab 0,5 kg erklärt die App die Wasserschwankung. Außerdem zu sehen: Seit-Start-Werte, der Anteil der Wochen im Minus, eine Prognose zum Ziel, 5-%-Meilensteine und der 7-Tage-Zyklus mit nächstem Termin.
+- **Plateau**: Bewegt sich der Trend 3 Wochen lang um höchstens ±0,5 kg, zeigt Heute einen eigenen Zustand. Er zeigt das gehaltene Gewicht, Taille und Appetit und bietet „Frage notieren“ an.
+- **Eintragen** öffnet ein Fenster von unten mit drei Reitern:
+  - Gewicht: vorausgefüllt mit dem letzten Wert, ±0,1-Tasten, Spritze optional am selben Tag
+  - Spritze: letzte Dosis vorausgewählt, Vorschlag für die nächste Einstichstelle
+  - Notiz: Appetit, Nebenwirkungen, Taillenumfang, Notiz, Frage für den Arzt
+- **Verlauf**: Liste mit Filter oder Monatskalender, Tippen bearbeitet einen Eintrag. Mehrere Wägungen pro Tag sind möglich, der Trend nutzt dann den Tagesdurchschnitt.
+- **Auswertung**:
+  - Trenddiagramm mit Zeitraum, Dosiswechseln und Zielen
+  - Wochenmittel
+  - kg pro Woche je Dosis (am Trend gemessen)
+  - Zyklus-Muster: Abweichung vom Trend nach Tag seit der Spritze
+  - Appetit an Tag 1–3 gegenüber Tag 5–7
+  - Tage mit Nebenwirkungen je Dosis
+- **Mehr**: Ziele, gesammelte Arztfragen, Spritzen-Erinnerung (Benachrichtigung um 9 Uhr am Fälligkeitstag), Sicherung und Export.
 
-### Home-screen widgets
-- Quick Add widget with Weight, Dose and Both shortcuts
-- Graph widget with the recent 60-day weight graph
-- Compact widget combining graph + quick add
-- Dashboard widget combining quick add with total lost, latest weight, current dose, dose-window status, weigh-in count and latest date
-- Widget quick-add shortcuts open directly into focused add dialogs
-- Widgets refresh immediately after data changes
+### Homescreen-Widgets
+Schnelleintrag, Verlauf, Kompakt und Übersicht. Alle sind auf Deutsch, im neuen Farbschema und nutzen für die Summen den Trend.
 
-### Calendar & history
-- Month calendar with markers for weights, injections and daily notes
-- Tap a day to inspect or edit its records
-- Combined history with filters for weights, injections and notes
-- Editing is in-place; deleting requires confirmation
+### Daten und Datenschutz
+- SQLite im privaten App-Speicher, keine Internet-Berechtigung, keine Cloud-Sicherung
+- Die Datenbank wird beim Update automatisch auf Version 2 migriert (Taille und Arztfrage kommen dazu); bestehende Daten bleiben erhalten
+- Nach jeder Änderung schreibt die App automatisch eine JSON-Sicherung; die letzten fünf werden behalten
+- JSON-Export und -Wiederherstellung, CSV-Export; ältere Sicherungen (Version 1) lassen sich weiter einlesen
 
-### Stats & milestones
-- Starting, latest and lowest recorded weight
-- Total kg and percentage change
-- Average weekly change
-- Current dose run
-- Per-dose descriptive breakdown
-- User-defined target-weight milestones shown on the weight graph
-
-### Data safety & privacy
-- Persistent SQLite database in Android app-private storage
-- Normal app updates preserve the database
-- No Internet permission
-- Android automatic cloud backup is disabled
-- Five rotating local JSON snapshots are written after data changes
-- Full JSON export and restore through Android's document picker
-- CSV export for external analysis
-- Restore validates the backup and snapshots the current dataset before replacement
-
-> Android uninstallation can remove app-private data. Export a JSON backup before uninstalling or changing phones.
+> Eine Deinstallation kann die App-Daten löschen. Vorher eine JSON-Sicherung exportieren.
 
 ## Build
 
-The project targets Android API 35, minimum API 26, Java 17 and Gradle 8.9.
-
-CI runs:
+API 35, minimal API 26, Java 17.
 
     gradle :app:testDebugUnitTest :app:assembleDebug
 
-A successful GitHub Actions run uploads **mounjaro-log-debug-apk** as an installable debug APK artifact.
-
-## Development
-
-Version 1.1.0 adds Android home-screen widgets and refined graph continuity/window rules.
+Die GitHub Action signiert das APK mit dem gespeicherten Schlüssel, damit es sich über die installierte Version aktualisieren lässt. Das Ergebnis steht als Artefakt **mounjaro-log-debug-apk** bereit.

@@ -23,7 +23,9 @@ data class DayLog(
     val date: LocalDate,
     val appetite: Int? = null,
     val sideEffects: String = "",
-    val note: String = ""
+    val note: String = "",
+    val waistCm: Double? = null,
+    val question: String = ""
 )
 
 data class Milestone(

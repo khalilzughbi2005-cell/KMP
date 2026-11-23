@@ -16,6 +16,8 @@ import dev.khalil.mounjarolog.MainActivity
 import dev.khalil.mounjarolog.R
 import dev.khalil.mounjarolog.data.LoggerDatabase
 import dev.khalil.mounjarolog.model.AppData
+import dev.khalil.mounjarolog.model.trendAt
+import dev.khalil.mounjarolog.model.trendSeries
 import dev.khalil.mounjarolog.model.continuitySegments
 import dev.khalil.mounjarolog.model.doseContextFor
 import dev.khalil.mounjarolog.model.effectiveDoseWindows
@@ -140,7 +142,7 @@ object HomeWidgetUpdater {
         val latest = data.latestWeight()
         val startWeight = data.startingWeight()
         val graphWindow = graphWindow(data)
-        val formatter = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+        val formatter = DateTimeFormatter.ofPattern("d. MMM", Locale.GERMANY)
 
         ids.forEach { id ->
             val size = widgetSize(manager, id, defaultWidthDp = 300, defaultHeightDp = 140)
@@ -152,16 +154,16 @@ object HomeWidgetUpdater {
             val views = RemoteViews(context.packageName, R.layout.widget_graph)
             views.setTextViewText(
                 R.id.widget_latest_weight,
-                latest?.let { oneDecimal(it.weightKg) + " kg" } ?: "No weight yet"
+                latest?.let { oneDecimal(it.weightKg) + " kg" } ?: "Noch kein Gewicht"
             )
             views.setTextViewText(
                 R.id.widget_latest_dose,
-                data.latestInjection()?.let { doseText(it.doseMg) } ?: "No dose yet"
+                data.latestInjection()?.let { doseText(it.doseMg) } ?: "Noch keine Spritze"
             )
             views.setTextViewText(
                 R.id.widget_weight_change,
                 if (latest != null && startWeight != null) {
-                    signed(latest.weightKg - startWeight.weightKg) + " kg total"
+                    signed((trendSeries(data.weights).lastOrNull()?.trendKg ?: latest.weightKg) - startWeight.weightKg) + " kg seit Start"
                 } else "—"
             )
             views.setTextViewText(R.id.widget_graph_start, graphWindow.first.format(formatter))
@@ -200,7 +202,8 @@ object HomeWidgetUpdater {
         val latest = data.latestWeight()
         val start = data.startingWeight()
         val injection = data.latestInjection()
-        val totalLost = if (latest != null && start != null) start.weightKg - latest.weightKg else null
+        val series = trendSeries(data.weights)
+        val totalLost = series.lastOrNull()?.let { series.first().weightKg - it.trendKg }
         val activeContext = data.doseContextFor(LocalDate.now())
         val change30 = changeOverDays(data, 30)
 
@@ -221,9 +224,9 @@ object HomeWidgetUpdater {
             views.setTextViewText(
                 R.id.widget_dose_window,
                 when {
-                    activeContext.doseMg != null -> "Day " + activeContext.dayInWindow + "/7"
-                    injection != null -> "Outside window"
-                    else -> "No dose yet"
+                    activeContext.doseMg != null -> "Tag " + activeContext.dayInWindow + "/7"
+                    injection != null -> "Zyklus vorbei"
+                    else -> "Noch keine Spritze"
                 }
             )
             views.setTextViewText(
@@ -234,8 +237,8 @@ object HomeWidgetUpdater {
             views.setTextViewText(
                 R.id.widget_last_date,
                 latest?.date?.let {
-                    "Last " + it.format(DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()))
-                } ?: "No weigh-in"
+                    "Zuletzt " + it.format(DateTimeFormatter.ofPattern("d. MMM", Locale.GERMANY))
+                } ?: "Keine Wägung"
             )
             views.setOnClickPendingIntent(
                 R.id.widget_add_weight,
@@ -258,22 +261,19 @@ object HomeWidgetUpdater {
         val injection = data.latestInjection()
         views.setTextViewText(
             R.id.widget_latest_weight,
-            latest?.let { oneDecimal(it.weightKg) + " kg" } ?: "No weight yet"
+            latest?.let { oneDecimal(it.weightKg) + " kg" } ?: "Noch kein Gewicht"
         )
         views.setTextViewText(
             R.id.widget_latest_dose,
-            injection?.let { doseText(it.doseMg) } ?: "No dose yet"
+            injection?.let { doseText(it.doseMg) } ?: "Noch keine Spritze"
         )
     }
 
     private fun changeOverDays(data: AppData, days: Long): Double? {
-        val latest = data.latestWeight() ?: return null
-        val target = latest.date.minusDays(days)
-        val reference = data.weights
-            .filter { !it.date.isAfter(target) }
-            .maxByOrNull { it.date }
-            ?: return null
-        return latest.weightKg - reference.weightKg
+        val series = trendSeries(data.weights)
+        val latest = series.lastOrNull() ?: return null
+        val reference = series.trendAt(latest.date.minusDays(days)) ?: return null
+        return latest.trendKg - reference
     }
 
     private fun graphWindow(data: AppData): Pair<LocalDate, LocalDate> {
@@ -340,11 +340,11 @@ object HomeWidgetUpdater {
     }
 
     private fun oneDecimal(value: Double): String =
-        String.format(Locale.getDefault(), "%.1f", value)
+        String.format(Locale.GERMANY, "%.1f", value)
 
     private fun signed(value: Double): String {
-        val formatted = oneDecimal(value)
-        return if (value > 0) "+$formatted" else formatted
+        val formatted = oneDecimal(kotlin.math.abs(value))
+        return if (value > 0) "+$formatted" else if (value < 0) "−$formatted" else formatted
     }
 
     private fun doseText(value: Double): String =
@@ -365,7 +365,7 @@ private object WidgetGraphRenderer {
 
         val weights = data.weights.sortedBy { it.date }
         if (weights.isEmpty()) {
-            drawCenteredText(canvas, width, height, "Add a weight to start")
+            drawCenteredText(canvas, width, height, "Erstes Gewicht eintragen")
             return bitmap
         }
 
@@ -376,7 +376,7 @@ private object WidgetGraphRenderer {
         val visible = weights.filter { !it.date.isBefore(start) && !it.date.isAfter(end) }
 
         if (visible.isEmpty()) {
-            drawCenteredText(canvas, width, height, "No weights in the last 60 days")
+            drawCenteredText(canvas, width, height, "Keine Wägung in den letzten 60 Tagen")
             return bitmap
         }
 
@@ -406,7 +406,7 @@ private object WidgetGraphRenderer {
         }
 
         val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(34, 72, 97, 88)
+            color = Color.argb(34, 20, 20, 20)
             strokeWidth = max(1f, height * 0.008f)
         }
         canvas.drawLine(left, top + chartHeight * 0.5f, right, top + chartHeight * 0.5f, gridPaint)
@@ -430,7 +430,7 @@ private object WidgetGraphRenderer {
             }
 
         val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(23, 107, 82)
+            color = Color.rgb(20, 20, 20)
             strokeWidth = max(4f, height * 0.035f)
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
@@ -499,7 +499,7 @@ private object WidgetGraphRenderer {
 
     private fun drawCenteredText(canvas: Canvas, width: Int, height: Int, text: String) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(90, 100, 95)
+            color = Color.rgb(110, 110, 106)
             textSize = max(20f, height * 0.15f)
             textAlign = Paint.Align.CENTER
         }
@@ -508,12 +508,13 @@ private object WidgetGraphRenderer {
 
     private fun doseColor(dose: Double?, alpha: Int = 255): Int {
         val base = when (dose) {
-            5.0 -> Color.rgb(46, 125, 50)
-            7.5 -> Color.rgb(25, 118, 210)
-            10.0 -> Color.rgb(106, 27, 154)
-            12.5 -> Color.rgb(239, 108, 0)
-            15.0 -> Color.rgb(198, 40, 40)
-            else -> Color.rgb(117, 117, 117)
+            2.5 -> Color.rgb(212, 212, 208)
+            5.0 -> Color.rgb(176, 176, 171)
+            7.5 -> Color.rgb(138, 138, 133)
+            10.0 -> Color.rgb(100, 100, 95)
+            12.5 -> Color.rgb(62, 62, 58)
+            15.0 -> Color.rgb(20, 20, 20)
+            else -> Color.rgb(154, 154, 149)
         }
         return Color.argb(alpha, Color.red(base), Color.green(base), Color.blue(base))
     }

@@ -2,7 +2,7 @@ name: Android build
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "ccr-*"]
   pull_request:
 
 concurrency:

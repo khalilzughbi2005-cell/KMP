@@ -22,16 +22,16 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Weight trend"
-                android:textColor="#60766D"
+                android:text="Gewichtstrend"
+                android:textColor="#6E6E6A"
                 android:textSize="11sp" />
 
             <TextView
                 android:id="@+id/widget_latest_weight"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="No weight yet"
-                android:textColor="#17352B"
+                android:text="Noch kein Gewicht"
+                android:textColor="#141414"
                 android:textSize="22sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -47,7 +47,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="—"
-                android:textColor="#176B52"
+                android:textColor="#141414"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -56,8 +56,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="No dose yet"
-                android:textColor="#60766D"
+                android:text="Noch keine Spritze"
+                android:textColor="#6E6E6A"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
@@ -84,14 +84,14 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="—"
-            android:textColor="#72867E"
+            android:textColor="#6E6E6A"
             android:textSize="9sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="60 day view"
-            android:textColor="#72867E"
+            android:text="60 Tage"
+            android:textColor="#6E6E6A"
             android:textSize="9sp" />
 
         <TextView
@@ -100,8 +100,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="end"
-            android:text="Today"
-            android:textColor="#72867E"
+            android:text="Heute"
+            android:textColor="#6E6E6A"
             android:textSize="9sp" />
     </LinearLayout>
 </LinearLayout>
