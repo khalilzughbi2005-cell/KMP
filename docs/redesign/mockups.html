@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#d9d6cf;padding:32px;display:flex;gap:32px;font-feature-settings:"tnum"}
+.phone{width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;box-shadow:0 0 0 10px #1a1a1a,0 20px 50px rgba(0,0,0,.25)}
+.sb{height:44px;display:flex;justify-content:space-between;align-items:flex-end;padding:0 28px 6px;font:600 14px system-ui}
+.cap{font:600 13px system-ui;color:#333;margin-bottom:10px}
+.col{display:flex;flex-direction:column}
+svg text{font-feature-settings:"tnum"}
+
+/* ===== A: Logbuch ===== */
+.A{background:#f4efe6;color:#1f1b16;font-family:"IBM Plex Sans",sans-serif}
+.A .wrap{padding:8px 22px}
+.A h1{font:400 15px "IBM Plex Sans";color:#6b6157;display:flex;justify-content:space-between}
+.A .big{font:300 76px/1 "Fraunces";letter-spacing:-2px;margin-top:18px}
+.A .big small{font-size:22px;letter-spacing:0;color:#6b6157;margin-left:4px}
+.A .delta{font:500 15px "IBM Plex Sans";margin-top:6px;color:#3d352d}
+.A .delta b{color:#a4441c;font-weight:600}
+.A hr{border:0;border-top:1px solid #d6cdbf;margin:18px 0}
+.A .row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e3dbcf;font-size:15px}
+.A .row span:first-child{color:#6b6157}
+.A .lbl{font:600 12px "IBM Plex Sans";color:#6b6157;margin:20px 0 8px}
+.A .btns{display:flex;gap:10px;position:absolute;bottom:28px;left:22px;right:22px}
+.A .btn{flex:1;padding:16px;border-radius:6px;font:600 16px "IBM Plex Sans";text-align:center}
+.A .p{background:#1f1b16;color:#f4efe6}
+.A .s{border:1.5px solid #1f1b16}
+.A .cycle{display:flex;gap:4px;margin-top:8px}
+.A .cycle i{flex:1;height:26px;border:1px solid #cbbfae;border-radius:3px;font:500 11px "IBM Plex Mono";display:grid;place-items:center;font-style:normal;color:#6b6157}
+.A .cycle i.on{background:#a4441c;border-color:#a4441c;color:#fff}
+.A .cycle i.done{background:#e6d7c6}
+.A .tbl{width:100%;border-collapse:collapse;font-size:14px}
+.A .tbl td,.A .tbl th{padding:9px 0;border-bottom:1px solid #e3dbcf;text-align:right}
+.A .tbl th{font:600 11px "IBM Plex Sans";color:#6b6157;text-align:right}
+.A .tbl td:first-child,.A .tbl th:first-child{text-align:left}
+.A .note{font:400 13px/1.45 "Fraunces";font-style:italic;color:#5a5047;background:#ebe3d6;padding:12px 14px;border-radius:4px;margin-top:14px}
+
+/* ===== B: Instrument ===== */
+.B{background:#14181a;color:#e7e3d9;font-family:"IBM Plex Sans",sans-serif}
+.B .sb{color:#e7e3d9}
+.B .wrap{padding:6px 18px}
+.B .top{display:flex;justify-content:space-between;align-items:center;font:500 13px "IBM Plex Mono";color:#8a948f}
+.B .grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #2a3134;border-left:1px solid #2a3134;margin-top:14px}
+.B .cell{border-right:1px solid #2a3134;border-bottom:1px solid #2a3134;padding:12px}
+.B .cell .k{font:500 12px "IBM Plex Sans";color:#8a948f}
+.B .cell .v{font:500 30px "IBM Plex Mono";letter-spacing:-1px;margin-top:4px}
+.B .cell .v small{font-size:14px;color:#8a948f;letter-spacing:0}
+.B .cell .sub{font:400 12px "IBM Plex Mono";color:#8a948f;margin-top:2px}
+.B .amber{color:#f0b429}
+.B .wide{grid-column:span 2}
+.B .bar{height:6px;background:#2a3134;margin-top:10px;position:relative}
+.B .bar b{position:absolute;left:0;top:0;bottom:0;background:#f0b429}
+.B .entry{position:absolute;bottom:0;left:0;right:0;background:#1c2124;border-top:1px solid #2a3134;padding:14px 18px 30px}
+.B .entry .in{display:flex;gap:8px}
+.B .field{flex:1;background:#14181a;border:1px solid #3a4246;padding:12px;font:500 22px "IBM Plex Mono";color:#e7e3d9}
+.B .field span{color:#8a948f;font-size:14px}
+.B .go{background:#f0b429;color:#14181a;font:600 15px "IBM Plex Sans";padding:0 22px;display:grid;place-items:center}
+.B .chips{display:flex;gap:6px;margin-top:8px}
+.B .chip{font:500 12px "IBM Plex Mono";padding:6px 9px;border:1px solid #3a4246;color:#8a948f}
+.B .chip.on{border-color:#f0b429;color:#f0b429}
+.B .seg{display:flex;border:1px solid #3a4246;margin-top:12px}
+.B .seg div{flex:1;text-align:center;font:500 12px "IBM Plex Mono";padding:7px 0;color:#8a948f;border-right:1px solid #3a4246}
+.B .seg div:last-child{border:0}
+.B .seg .on{background:#e7e3d9;color:#14181a}
+.B .legend{display:flex;gap:14px;font:400 11px "IBM Plex Mono";color:#8a948f;margin-top:8px;flex-wrap:wrap}
+.B .legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+
+/* ===== C: Ruhig / Editorial ===== */
+.C{background:#e9ede4;color:#20291f;font-family:"Atkinson Hyperlegible",sans-serif}
+.C .wrap{padding:6px 20px}
+.C .hello{font:600 26px/1.15 "Bricolage Grotesque";letter-spacing:-.5px;margin-top:10px}
+.C .hello em{font-style:normal;color:#b3541e}
+.C .panel{background:#fbfcf8;border-radius:18px;padding:16px;margin-top:14px}
+.C .kpis{display:flex;gap:20px;margin-top:2px}
+.C .kpi .v{font:800 34px "Bricolage Grotesque";letter-spacing:-1px}
+.C .kpi .k{font-size:13px;color:#5d6a5a}
+.C .pill{display:inline-flex;gap:6px;align-items:center;background:#20291f;color:#e9ede4;border-radius:8px;padding:7px 11px;font:700 13px "Atkinson Hyperlegible"}
+.C .fab{position:absolute;bottom:96px;right:20px;background:#b3541e;color:#fff;border-radius:16px;padding:16px 20px;font:700 16px "Atkinson Hyperlegible";box-shadow:0 6px 16px rgba(179,84,30,.3)}
+.C .nav{position:absolute;bottom:0;left:0;right:0;height:78px;background:#fbfcf8;display:flex;justify-content:space-around;padding-top:14px;font:700 12px "Atkinson Hyperlegible";color:#5d6a5a}
+.C .nav .on{color:#20291f}
+.C .nav .on::before{content:"";display:block;width:28px;height:3px;background:#b3541e;margin:0 auto 6px;border-radius:2px}
+.C .list div{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e7dc;font-size:15px}
+.C .list div:last-child{border:0}
+.C .muted{color:#5d6a5a}
+.C .h2{font:600 17px "Bricolage Grotesque";margin-bottom:6px}
+.C .ins{font-size:14px;line-height:1.45;color:#3a4537}
+.C .ins b{color:#20291f}
+</style></head><body>
+
+<!-- ================= A ================= -->
+<div class="col" data-d="A"><div class="cap">A · Logbuch — Startseite</div>
+<div class="phone A"><div class="sb"><span>9:41</span><span>●●● 87%</span></div>
+<div class="wrap">
+  <h1><span>Mo, 23. November</span><span>Woche 21</span></h1>
+  <div class="big">98,6<small>kg</small></div>
+  <div class="delta"><b>−13,8 kg</b> seit 6. Juli &nbsp;·&nbsp; −12,3 %</div>
+  <svg id="a1" width="346" height="120" style="margin-top:14px"></svg>
+  <div class="lbl">Dosis-Zyklus · 7,5 mg</div>
+  <div class="cycle"><i class="done">1</i><i class="done">2</i><i class="on">3</i><i>4</i><i>5</i><i>6</i><i>7</i></div>
+  <div style="font-size:13px;color:#6b6157;margin-top:6px">Nächste Injektion Fr, 27. Nov · Bauch links war zuletzt</div>
+  <hr>
+  <div class="row"><span>Trend (7 Tage)</span><span>−0,6 kg/Woche</span></div>
+  <div class="row"><span>Ziel 90 kg</span><span>ca. Mitte März</span></div>
+  <div class="row" style="border:0"><span>Letzte Wägung</span><span>heute, 07:12</span></div>
+</div>
+<div class="btns"><div class="btn s">+ Dosis</div><div class="btn p">+ Gewicht</div></div>
+</div></div>
+
+<div class="col" data-d="A"><div class="cap">A · Logbuch — Auswertung</div>
+<div class="phone A"><div class="sb"><span>9:41</span><span>●●● 87%</span></div>
+<div class="wrap">
+  <h1><span>Auswertung</span><span>3 M ▾</span></h1>
+  <svg id="a2" width="346" height="220" style="margin-top:12px"></svg>
+  <div style="font-size:12px;color:#6b6157;margin-top:4px">● Messung &nbsp; — geglätteter Trend &nbsp; ▮ Dosis-Phase</div>
+  <div class="lbl">Je Dosisstufe</div>
+  <table class="tbl">
+    <tr><th>Dosis</th><th>Wochen</th><th>Δ kg</th><th>kg/Wo</th></tr>
+    <tr><td>2,5 mg</td><td>4</td><td>−4,1</td><td>−1,03</td></tr>
+    <tr><td>5 mg</td><td>8</td><td>−5,9</td><td>−0,74</td></tr>
+    <tr><td>7,5 mg</td><td>9</td><td>−3,8</td><td>−0,42</td></tr>
+  </table>
+  <div class="note">Die Abnahme verlangsamt sich seit Woche 14. Das ist häufig normal — bespreche Dosisänderungen mit deiner Ärztin / deinem Arzt.</div>
+</div></div></div>
+
+<!-- ================= B ================= -->
+<div class="col" data-d="B"><div class="cap">B · Instrument — Startseite</div>
+<div class="phone B"><div class="sb"><span>9:41</span><span>●●● 87%</span></div>
+<div class="wrap">
+  <div class="top"><span>MO 23.11.</span><span>TAG 3/7 · 7,5 MG</span></div>
+  <div class="grid">
+    <div class="cell"><div class="k">Gewicht</div><div class="v">98,6<small> kg</small></div><div class="sub">Trend 98,9</div></div>
+    <div class="cell"><div class="k">Gesamt</div><div class="v amber">−13,8</div><div class="sub">−12,3 % · 140 T</div></div>
+    <div class="cell wide"><div class="k">Verlauf 90 Tage</div><svg id="b1" width="320" height="110" style="margin-top:6px"></svg></div>
+    <div class="cell"><div class="k">Rate 4 Wo</div><div class="v">−0,5<small> /wo</small></div></div>
+    <div class="cell"><div class="k">Ziel 90,0</div><div class="v">61<small> %</small></div><div class="bar"><b style="width:61%"></b></div></div>
+    <div class="cell wide"><div class="k">Nächste Injektion</div><div class="v" style="font-size:22px">FR 27.11. <span style="color:#8a948f;font-size:14px">in 4 T · Oberschenkel re</span></div></div>
+  </div>
+</div>
+<div class="entry">
+  <div class="in"><div class="field">98,6 <span>kg</span></div><div class="go">Speichern</div></div>
+  <div class="chips"><span class="chip">heute ▾</span><span class="chip">+ Dosis</span><span class="chip">+ Notiz</span><span class="chip">Appetit</span></div>
+</div></div></div>
+
+<div class="col" data-d="B"><div class="cap">B · Instrument — Auswertung</div>
+<div class="phone B"><div class="sb"><span>9:41</span><span>●●● 87%</span></div>
+<div class="wrap">
+  <div class="top"><span>AUSWERTUNG</span><span>06.07.–23.11.</span></div>
+  <div class="seg"><div>1M</div><div class="on">3M</div><div>6M</div><div>1J</div><div>ALLE</div></div>
+  <svg id="b2" width="354" height="200" style="margin-top:12px"></svg>
+  <div class="legend"><span><i style="background:#5b6b70"></i>2,5</span><span><i style="background:#7aa6a1"></i>5</span><span><i style="background:#f0b429"></i>7,5</span><span>— Trend</span></div>
+  <div class="grid" style="margin-top:12px">
+    <div class="cell wide"><div class="k">Gewicht nach Zyklustag (Ø Abweichung vom Trend)</div><svg id="b3" width="320" height="86" style="margin-top:6px"></svg></div>
+    <div class="cell"><div class="k">Appetit Tag 1–3</div><div class="v">1,8<small> /5</small></div></div>
+    <div class="cell"><div class="k">Appetit Tag 5–7</div><div class="v amber">3,4<small> /5</small></div></div>
+  </div>
+</div></div></div>
+
+<!-- ================= C ================= -->
+<div class="col" data-d="C"><div class="cap">C · Ruhig — Startseite</div>
+<div class="phone C"><div class="sb"><span>9:41</span><span>●●● 87%</span></div>
+<div class="wrap">
+  <div class="muted" style="font-size:14px;margin-top:6px">Montag, 23. November</div>
+  <div class="hello">Du bist <em>13,8 kg</em> leichter als im Juli.</div>
+  <div class="panel">
+    <div class="kpis"><div class="kpi"><div class="v">98,6</div><div class="k">kg heute</div></div><div class="kpi"><div class="v">−0,6</div><div class="k">kg / Woche</div></div><div class="kpi"><div class="v">8,6</div><div class="k">kg bis Ziel</div></div></div>
+    <svg id="c1" width="318" height="120" style="margin-top:12px"></svg>
+  </div>
+  <div class="panel" style="display:flex;justify-content:space-between;align-items:center">
+    <div><div class="h2">7,5 mg · Tag 3</div><div class="muted" style="font-size:14px">Nächste am Freitag</div></div>
+    <span class="pill">4 Tage</span>
+  </div>
+  <div class="panel list" style="padding-top:6px;padding-bottom:6px">
+    <div><span>Heute · Gewicht</span><b>98,6 kg</b></div>
+    <div><span>Sa · Notiz</span><span class="muted">leichte Übelkeit</span></div>
+    <div><span>Fr · Injektion</span><b>7,5 mg</b></div>
+  </div>
+</div>
+<div class="fab">+ Eintrag</div>
+<div class="nav"><span class="on">Heute</span><span>Verlauf</span><span>Kalender</span><span>Mehr</span></div>
+</div></div>
+
+<div class="col" data-d="C"><div class="cap">C · Ruhig — Schnelleintrag (Bottom-Sheet)</div>
+<div class="phone C" style="background:#8f978b"><div class="sb"><span>9:41</span><span>●●● 87%</span></div>
+<div style="position:absolute;bottom:0;left:0;right:0;background:#fbfcf8;border-radius:24px 24px 0 0;padding:14px 20px 34px">
+  <div style="width:40px;height:4px;background:#c9d0c3;border-radius:2px;margin:0 auto 16px"></div>
+  <div class="h2" style="font-size:22px">Neuer Eintrag</div>
+  <div class="muted" style="font-size:14px">Heute, 23. Nov · <u>ändern</u></div>
+  <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;margin:22px 0 4px"><span style="font:800 64px 'Bricolage Grotesque';letter-spacing:-2px">98,6</span><span class="muted" style="font-size:20px">kg</span></div>
+  <div class="muted" style="text-align:center;font-size:13px">gestern 99,0 · −0,4</div>
+  <div style="display:flex;justify-content:center;gap:10px;margin:14px 0 20px">
+    <span style="border:1.5px solid #20291f;border-radius:10px;padding:10px 22px;font-weight:700">− 0,1</span>
+    <span style="border:1.5px solid #20291f;border-radius:10px;padding:10px 22px;font-weight:700">+ 0,1</span></div>
+  <div style="font-weight:700;font-size:14px;margin-bottom:8px">Auch heute?</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <span style="background:#e9ede4;border-radius:8px;padding:9px 12px;font-size:14px">+ Injektion</span>
+    <span style="background:#e9ede4;border-radius:8px;padding:9px 12px;font-size:14px">Appetit</span>
+    <span style="background:#e9ede4;border-radius:8px;padding:9px 12px;font-size:14px">Nebenwirkung</span>
+    <span style="background:#e9ede4;border-radius:8px;padding:9px 12px;font-size:14px">Notiz</span>
+  </div>
+  <div style="background:#20291f;color:#fbfcf8;text-align:center;border-radius:12px;padding:17px;font:700 17px 'Atkinson Hyperlegible';margin-top:22px">Speichern</div>
+</div></div></div>
+
+<script>
+// fake but plausible data: 140 days, start 112.4 → 98.6, slowing curve, daily noise, ~60% of days weighed
+let seed=7;const rnd=()=>((seed=seed*16807%2147483647)/2147483647);
+const N=140,pts=[];for(let d=0;d<N;d++){const base=112.4-13.6*(1-Math.exp(-d/70))/(1-Math.exp(-N/70));const w=base+(rnd()-.5)*1.1+(d%7==1?.3:0);if(d==N-1||rnd()<.6)pts.push([d,+w.toFixed(1)])}
+pts[pts.length-1][1]=98.6;
+const ema=[];let e=pts[0][1];pts.forEach(([d,w])=>{e=e+.25*(w-e);ema.push([d,e])});
+const dose=d=>d<28?2.5:d<84?5:7.5;
+function chart(id,o){const s=document.getElementById(id),W=+s.getAttribute('width'),H=+s.getAttribute('height');const from=o.from||0;const P=pts.filter(p=>p[0]>=from),E=ema.filter(p=>p[0]>=from);
+ const lo=Math.min(...P.map(p=>p[1]))-.8,hi=Math.max(...P.map(p=>p[1]))+.8,pl=o.pl||0,pb=o.pb||0;
+ const X=d=>pl+(d-from)/(N-1-from)*(W-pl-4),Y=w=>4+(hi-w)/(hi-lo)*(H-8-pb);let g='';
+ if(o.bands)for(let d=from;d<N;d++)g+=`<rect x="${X(d)}" y="0" width="${(W-pl)/(N-from)+.5}" height="${H-pb}" fill="${o.bands(dose(d))}"/>`;
+ if(o.grid)[...Array(4)].forEach((_,i)=>{const w=lo+(hi-lo)*(i+.5)/4;g+=`<line x1="${pl}" x2="${W}" y1="${Y(w)}" y2="${Y(w)}" stroke="${o.grid}" stroke-width="1"/><text x="${pl-6}" y="${Y(w)+4}" text-anchor="end" font-size="10" fill="${o.axis}" font-family="${o.font}">${w.toFixed(0)}</text>`});
+ if(o.goal){g+=`<line x1="${pl}" x2="${W}" y1="${Y(o.goal)}" y2="${Y(o.goal)}" stroke="${o.axis}" stroke-dasharray="3 4"/>`}
+ if(o.dots)P.forEach(([d,w])=>g+=`<circle cx="${X(d)}" cy="${Y(w)}" r="${o.r||2}" fill="${o.dots}"/>`);
+ g+=`<path d="${E.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join('')}" fill="none" stroke="${o.line}" stroke-width="${o.lw||2.5}" stroke-linejoin="round"/>`;
+ const L=P[P.length-1];g+=`<circle cx="${X(L[0])}" cy="${Y(L[1])}" r="4.5" fill="${o.line}" stroke="${o.bg}" stroke-width="2"/>`;
+ if(o.xlab)[['Jul',0],['Aug',26],['Sep',57],['Okt',87],['Nov',118]].filter(m=>m[1]>=from).forEach(([m,d])=>g+=`<text x="${X(d)}" y="${H-2}" font-size="10" fill="${o.axis}" font-family="${o.font}">${m}</text>`);
+ s.innerHTML=g}
+chart('a1',{line:'#a4441c',dots:'#b9ab98',bg:'#f4efe6',lw:2.5});
+chart('a2',{line:'#a4441c',dots:'#b9ab98',bg:'#f4efe6',grid:'#e3dbcf',axis:'#8b8073',font:'IBM Plex Sans',pl:26,pb:16,xlab:1,goal:0,bands:d=>({2.5:'rgba(0,0,0,0)',5:'rgba(164,68,28,.06)',7.5:'rgba(164,68,28,.13)'})[d]});
+chart('b1',{from:50,line:'#f0b429',dots:'#5f6b6f',bg:'#14181a',lw:2});
+chart('b2',{line:'#e7e3d9',dots:'#8a948f',bg:'#14181a',grid:'#242b2e',axis:'#6f7a76',font:'IBM Plex Mono',pl:26,pb:16,xlab:1,lw:2,bands:d=>({2.5:'rgba(91,107,112,.25)',5:'rgba(122,166,161,.18)',7.5:'rgba(240,180,41,.14)'})[d]});
+chart('c1',{line:'#20291f',dots:'#b7c1b2',bg:'#fbfcf8',lw:3,r:2.3});
+// cycle-day deviation bars
+(()=>{const s=document.getElementById('b3'),v=[.35,.1,-.15,-.25,-.2,0,.15],W=320,H=86,m=H/2-6;let g=`<line x1="0" x2="${W}" y1="${m}" y2="${m}" stroke="#3a4246"/>`;v.forEach((x,i)=>{const bw=30,cx=10+i*44,h=Math.abs(x)*60;g+=`<rect x="${cx}" y="${x>0?m-h:m}" width="${bw}" height="${h}" fill="${i==2?'#f0b429':'#5f6b6f'}"/><text x="${cx+bw/2}" y="${H-1}" text-anchor="middle" font-size="10" fill="#8a948f" font-family="IBM Plex Mono">T${i+1}</text>`});s.innerHTML=g})();
+</script></body></html>
